@@ -1,11 +1,13 @@
 {
-  "extends": "@coffee-catch/config/tsconfig/nextjs.json",
+  "extends": "../../packages/config/tsconfig/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "lib": ["ES2020", "DOM", "DOM.Iterable", "WebWorker"]
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "WebWorker"],
+    "noEmit": true,
+    "isolatedModules": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]

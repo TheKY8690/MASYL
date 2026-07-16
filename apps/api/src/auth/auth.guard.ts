@@ -3,10 +3,10 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
-} from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { createClient } from "@supabase/supabase-js";
-import type { Request } from "express";
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createClient } from '@supabase/supabase-js';
+import type { Request } from 'express';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -14,8 +14,8 @@ export class AuthGuard implements CanActivate {
 
   constructor(private configService: ConfigService) {
     this.supabase = createClient(
-      configService.getOrThrow("SUPABASE_URL"),
-      configService.getOrThrow("SUPABASE_SERVICE_ROLE_KEY"),
+      configService.getOrThrow('SUPABASE_URL'),
+      configService.getOrThrow('SUPABASE_SERVICE_ROLE_KEY'),
     );
   }
 
@@ -24,13 +24,13 @@ export class AuthGuard implements CanActivate {
     const token = this.extractToken(request);
 
     if (!token) {
-      throw new UnauthorizedException("Missing access token");
+      throw new UnauthorizedException('Missing access token');
     }
 
     const { data, error } = await this.supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      throw new UnauthorizedException("Invalid or expired token");
+      throw new UnauthorizedException('Invalid or expired token');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,7 +39,7 @@ export class AuthGuard implements CanActivate {
   }
 
   private extractToken(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(" ") ?? [];
-    return type === "Bearer" ? token : undefined;
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
   }
 }

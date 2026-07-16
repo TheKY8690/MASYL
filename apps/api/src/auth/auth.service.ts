@@ -1,14 +1,12 @@
-import { Injectable, Inject } from "@nestjs/common";
-import { eq } from "drizzle-orm";
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { DRIZZLE } from "../drizzle/drizzle.module";
-import * as schema from "../drizzle/schema";
+import { Injectable, Inject } from '@nestjs/common';
+import { eq } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { DRIZZLE } from '../drizzle/drizzle.module';
+import * as schema from '../drizzle/schema';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
-  ) {}
+  constructor(@Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>) {}
 
   async upsertUser(supabaseUser: {
     id: string;
@@ -31,7 +29,7 @@ export class AuthService {
         id: supabaseUser.id,
         email: supabaseUser.email,
         name: supabaseUser.user_metadata.name ?? supabaseUser.email,
-        avatarUrl: supabaseUser.user_metadata.avatar_url,
+        avatarUrl: supabaseUser.user_metadata.avatar_url ?? null,
       })
       .returning();
 

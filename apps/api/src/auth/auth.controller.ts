@@ -1,15 +1,15 @@
-import { Controller, Get, UseGuards, Req } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import type { Request } from "express";
-import { AuthGuard } from "./auth.guard";
-import { AuthService } from "./auth.service";
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
+import { AuthGuard } from './auth.guard';
+import { AuthService } from './auth.service';
 
-@ApiTags("auth")
-@Controller("auth")
+@ApiTags('auth')
+@Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Get("me")
+  @Get('me')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   async getMe(@Req() req: Request) {
