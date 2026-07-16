@@ -12,6 +12,15 @@ build
 .next
 out
 
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# PWA (serwist generated)
+apps/web/public/sw.js
+apps/web/public/workbox-*.js
+apps/web/public/workbox-*.js.map
+
 # env
 .env
 .env.local
