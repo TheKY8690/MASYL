@@ -1,4 +1,4 @@
-import baseConfig from '@coffee-catch/config/eslint/index';
+import baseConfig from '@masyl/config/eslint/index';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(...baseConfig, {

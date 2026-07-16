@@ -1,5 +1,5 @@
 {
-  "name": "@coffee-catch/api",
+  "name": "@masyl/api",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -15,7 +15,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@coffee-catch/types": "workspace:*",
+    "@masyl/types": "workspace:*",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "@nestjs/common": "^11.1.28",
@@ -31,7 +31,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@coffee-catch/config": "workspace:*",
+    "@masyl/config": "workspace:*",
     "@nestjs/cli": "^11.0.24",
     "@nestjs/testing": "^11.1.28",
     "@types/express": "^5.0.6",

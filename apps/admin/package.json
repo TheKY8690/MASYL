@@ -1,5 +1,5 @@
 {
-  "name": "@coffee-catch/admin",
+  "name": "@masyl/admin",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -10,8 +10,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@coffee-catch/types": "workspace:*",
-    "@coffee-catch/ui": "workspace:*",
+    "@masyl/types": "workspace:*",
+    "@masyl/ui": "workspace:*",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.39.0",
     "@tanstack/react-query": "^5.0.0",
@@ -24,7 +24,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@coffee-catch/config": "workspace:*",
+    "@masyl/config": "workspace:*",
     "@eslint/eslintrc": "^3.3.1",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",

@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import Providers from './providers';
 
 export const metadata: Metadata = {
-  title: 'Coffee Catch',
-  description: 'Coffee Catch App',
+  title: 'Masyl',
+  description: 'Masyl App',
   manifest: '/manifest.json',
 };
 

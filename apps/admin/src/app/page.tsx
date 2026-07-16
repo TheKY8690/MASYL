@@ -1,7 +1,7 @@
 export default function AdminHomePage() {
   return (
     <main>
-      <h1>Coffee Catch Admin</h1>
+      <h1>Masyl Admin</h1>
     </main>
   );
 }

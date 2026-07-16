@@ -29,10 +29,10 @@ importers:
 
   apps/admin:
     dependencies:
-      '@coffee-catch/types':
+      '@masyl/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@coffee-catch/ui':
+      '@masyl/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@supabase/ssr':
@@ -66,12 +66,12 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@coffee-catch/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@eslint/eslintrc':
         specifier: ^3.3.1
         version: 3.3.6
+      '@masyl/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@types/node':
         specifier: ^26.1.1
         version: 26.1.1
@@ -105,7 +105,7 @@ importers:
 
   apps/api:
     dependencies:
-      '@coffee-catch/types':
+      '@masyl/types':
         specifier: workspace:*
         version: link:../../packages/types
       '@nestjs/common':
@@ -148,7 +148,7 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@coffee-catch/config':
+      '@masyl/config':
         specifier: workspace:*
         version: link:../../packages/config
       '@nestjs/cli':
@@ -193,10 +193,10 @@ importers:
 
   apps/web:
     dependencies:
-      '@coffee-catch/types':
+      '@masyl/types':
         specifier: workspace:*
         version: link:../../packages/types
-      '@coffee-catch/ui':
+      '@masyl/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@serwist/next':
@@ -236,12 +236,12 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@coffee-catch/config':
-        specifier: workspace:*
-        version: link:../../packages/config
       '@eslint/eslintrc':
         specifier: ^3.3.1
         version: 3.3.6
+      '@masyl/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@types/node':
         specifier: ^26.1.1
         version: 26.1.1
@@ -281,7 +281,7 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@coffee-catch/config':
+      '@masyl/config':
         specifier: workspace:*
         version: link:../config
       typescript:
@@ -294,7 +294,7 @@ importers:
         specifier: ^1.14.0
         version: 1.21.1
     devDependencies:
-      '@coffee-catch/config':
+      '@masyl/config':
         specifier: workspace:*
         version: link:../config
       typescript:

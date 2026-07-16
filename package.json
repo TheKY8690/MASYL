@@ -1,5 +1,5 @@
 {
-  "name": "coffee-catch",
+  "name": "masyl",
   "private": true,
   "scripts": {
     "build": "turbo build",

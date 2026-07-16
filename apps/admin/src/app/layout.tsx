@@ -3,8 +3,8 @@ import type { ReactNode } from 'react';
 import Providers from './providers';
 
 export const metadata: Metadata = {
-  title: 'Coffee Catch Admin',
-  description: 'Coffee Catch Admin Panel',
+  title: 'Masyl Admin',
+  description: 'Masyl Admin Panel',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
