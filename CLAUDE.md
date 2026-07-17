@@ -31,3 +31,33 @@ Masyl 프로젝트에서 작업할 때 반드시 지켜야 하는 규칙.
 
 - **Claude는 `git commit`, `git push`를 스스로 실행하지 않는다.** 코드 수정까지만 하고, 커밋/푸시는 사용자에게 직접 하도록 안내한다
 - push 전 검증(lint/typecheck/build/test)과 PR 본문 작성이 필요하면 `pre-push-pr` 스킬을 사용한다
+
+## 5. 배포 규칙 (Vercel + GitHub 연동)
+
+배포는 Vercel 대시보드와 GitHub 레포 연결로 처리한다. GitHub Actions에 별도 CD job을 만들지 않는다.
+
+**역할 분리**
+
+- GitHub Actions: lint / typecheck / format-check / build / test (검증 전용)
+- Vercel: 실제 빌드 및 배포
+
+**브랜치 → 환경 매핑**
+
+- `main` → Production
+- `develop` → Preview (스테이징 역할)
+- PR 브랜치 → Preview (자동)
+
+**환경변수 관리**
+
+- 실제 시크릿(Supabase URL/key, API URL 등)은 Vercel 대시보드에서 환경별(Production/Preview/Development) 분리 설정
+- 코드나 워크플로우 파일에 실제 값 하드코딩 금지
+- `ci.yml`의 `NEXT_PUBLIC_*`는 빌드 검증용 placeholder만 허용 (현재 상태 유지)
+- Preview URL은 공개이므로 Preview 환경에 production 시크릿 절대 넣지 않는다
+
+**금지 사항**
+
+- `pull_request_target` 트리거 사용 금지 (fork 코드 + 시크릿 조합 위험)
+- Vercel 연결 전 아래 체크리스트 확인 필요:
+  - Production Branch = `main` 설정 여부
+  - Git Fork Protection 활성화 여부
+  - 환경변수 스코프 분리 여부 (Production vs Preview)

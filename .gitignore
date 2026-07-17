@@ -22,11 +22,8 @@ apps/web/public/workbox-*.js
 apps/web/public/workbox-*.js.map
 
 # env
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*
+!.env.example
 
 # logs
 *.log
