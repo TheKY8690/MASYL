@@ -1,5 +1,5 @@
 {
-  "name": "@coffee-catch/types",
+  "name": "@masyl/types",
   "version": "0.0.1",
   "private": true,
   "main": "./src/index.ts",
@@ -8,10 +8,10 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^3.22.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@coffee-catch/config": "workspace:*",
-    "typescript": "^5.3.0"
+    "@masyl/config": "workspace:*",
+    "typescript": "6.0.3"
   }
 }

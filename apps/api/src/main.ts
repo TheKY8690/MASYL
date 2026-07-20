@@ -20,8 +20,8 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle('Coffee Catch API')
-    .setDescription('Coffee Catch REST API')
+    .setTitle('Masyl API')
+    .setDescription('Masyl REST API')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

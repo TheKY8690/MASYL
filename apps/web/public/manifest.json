@@ -1,7 +1,7 @@
 {
-  "name": "Coffee Catch",
-  "short_name": "CoffeeCatch",
-  "description": "Coffee Catch App",
+  "name": "Masyl",
+  "short_name": "Masyl",
+  "description": "Masyl App",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

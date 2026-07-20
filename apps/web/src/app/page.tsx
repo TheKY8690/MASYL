@@ -1,7 +1,7 @@
 export default function HomePage() {
   return (
     <main>
-      <h1>Coffee Catch</h1>
+      <h1>Masyl</h1>
     </main>
   );
 }
