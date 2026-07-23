@@ -36,6 +36,9 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Local notes
+MEMORY.md
+
 # IDE
 .vscode
 .idea

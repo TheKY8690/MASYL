@@ -1,6 +1,7 @@
 import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+import type { AuthUser } from '@masyl/types';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 
@@ -14,7 +15,7 @@ export class AuthController {
   @ApiBearerAuth()
   async getMe(@Req() req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const supabaseUser = (req as any).user;
+    const supabaseUser = (req as any).user as AuthUser;
     return this.authService.upsertUser(supabaseUser);
   }
 }

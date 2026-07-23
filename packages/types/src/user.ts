@@ -1,11 +1,18 @@
 import { z } from 'zod';
+import { SocialProviderSchema } from './auth';
 
-export const UserSchema = z.object({
+export const RoleSchema = z.enum(['user', 'admin']);
+export type Role = z.infer<typeof RoleSchema>;
+
+export const ProfileSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
-  name: z.string().min(1),
+  displayName: z.string(),
+  avatarUrl: z.string().nullable(),
+  role: RoleSchema,
+  provider: SocialProviderSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  lastLoginAt: z.string().datetime(),
 });
-
-export type User = z.infer<typeof UserSchema>;
+export type Profile = z.infer<typeof ProfileSchema>;
