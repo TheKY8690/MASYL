@@ -15,6 +15,20 @@
       "when": 1784649698636,
       "tag": "0001_slippery_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784853809124,
+      "tag": "0002_flat_pestilence",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784854352179,
+      "tag": "0003_minor_kinsey_walden",
+      "breakpoints": true
     }
   ]
 }
