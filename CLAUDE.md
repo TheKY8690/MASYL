@@ -61,3 +61,18 @@ Masyl 프로젝트에서 작업할 때 반드시 지켜야 하는 규칙.
   - Production Branch = `main` 설정 여부
   - Git Fork Protection 활성화 여부
   - 환경변수 스코프 분리 여부 (Production vs Preview)
+
+## 6. Drizzle 스키마 규칙
+
+`apps/api/src/drizzle/schema.ts`에 새 테이블을 추가할 때 **반드시** RLS를 함께 설정한다.
+
+**pgPolicy 추가 필수**: 모든 테이블은 `pgTable` 두 번째 인자(콜백)에 `pgPolicy`를 정의해야 한다.
+
+- SELECT / INSERT / UPDATE / DELETE 각각에 대해 접근 주체 명시
+- admin 체크: `` sql`(SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'` ``
+- 인증 사용자 전용: `to: authenticatedRole` (`drizzle-orm/supabase`에서 import)
+- Drizzle이 `pgPolicy` 감지 시 `ENABLE ROW LEVEL SECURITY`를 마이그레이션에 자동 포함
+
+**절대 UNRESTRICTED 상태로 마이그레이션 apply 금지**: Supabase에서 UNRESTRICTED = 데이터 전체 노출 위험. migrate 전에 반드시 ENABLE RLS + 정책 확인.
+
+기존 패턴은 `apps/api/src/drizzle/schema.ts`의 `cafes`, `discounts`, `crawled_events`, `user_reports` 테이블 참고.
