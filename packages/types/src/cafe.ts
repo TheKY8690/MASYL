@@ -40,5 +40,8 @@ export const CreateCafeSchema = CafeSchema.pick({
   naverPlaceId: true,
 });
 
+export const UpdateCafeSchema = CreateCafeSchema.partial();
+
 export type Cafe = z.infer<typeof CafeSchema>;
 export type CreateCafe = z.infer<typeof CreateCafeSchema>;
+export type UpdateCafe = z.infer<typeof UpdateCafeSchema>;
