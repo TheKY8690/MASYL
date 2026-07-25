@@ -15,6 +15,7 @@ import { authenticatedRole } from 'drizzle-orm/supabase';
 // 기존 user|admin에 seller 추가.
 // seller: 카페 소유주. 자신의 카페 할인을 직접 등록할 수 있는 권한.
 export const roleEnum = pgEnum('role', ['user', 'admin', 'seller']);
+// 소셜 로그인 제공자. Supabase Auth 소셜 로그인 전용 (이메일/비밀번호 없음).
 export const providerEnum = pgEnum('provider', ['google', 'kakao', 'naver']);
 
 /**
@@ -320,18 +321,24 @@ export const userReports = pgTable(
   ],
 );
 
+/**
+ * [사용처] 인증 및 권한 관리의 중심 엔티티.
+ * - Supabase auth.users와 1:1 동기화. 소셜 로그인 시 upsert.
+ * - role 필드로 user/admin/seller 접근 제어 (RolesGuard + RLS 양쪽에서 참조)
+ * - 모든 테이블의 created_by, owner_id, reporter_id 등이 이 테이블의 id를 FK로 참조
+ */
 export const profiles = pgTable(
   'profiles',
   {
-    id: uuid('id').primaryKey(), // Supabase auth.users.id와 동기화
-    email: varchar('email', { length: 255 }).notNull().unique(),
-    displayName: varchar('display_name', { length: 255 }).notNull(),
-    avatarUrl: varchar('avatar_url', { length: 500 }),
-    role: roleEnum('role').notNull().default('user'),
-    provider: providerEnum('provider').notNull(),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
-    lastLoginAt: timestamp('last_login_at').notNull().defaultNow(),
+    id: uuid('id').primaryKey(), // Supabase auth.users.id와 동기화. 별도 생성 없이 auth uid 그대로 사용
+    email: varchar('email', { length: 255 }).notNull().unique(), // 소셜 계정 이메일. 로그인 식별자
+    displayName: varchar('display_name', { length: 255 }).notNull(), // 표시 이름. user_metadata.full_name 또는 name에서 가져옴
+    avatarUrl: varchar('avatar_url', { length: 500 }), // 프로필 이미지 URL. user_metadata.avatar_url. nullable
+    role: roleEnum('role').notNull().default('user'), // 접근 권한. user(일반)/admin(전체)/seller(카페 소유주). 기본값 user
+    provider: providerEnum('provider').notNull(), // 소셜 로그인 제공자. app_metadata.provider에서 가져옴
+    createdAt: timestamp('created_at').notNull().defaultNow(), // 최초 가입 시각
+    updatedAt: timestamp('updated_at').notNull().defaultNow(), // 프로필 정보 변경 시각
+    lastLoginAt: timestamp('last_login_at').notNull().defaultNow(), // 마지막 로그인 시각. 로그인마다 갱신
   },
   (table) => [
     pgPolicy('users can view own profile', {
