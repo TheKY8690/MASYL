@@ -62,5 +62,8 @@ export const CreateDiscountSchema = DiscountSchema.pick({
   validUntil: true,
 }).partial({ description: true, validFrom: true, validUntil: true });
 
+export const UpdateDiscountSchema = CreateDiscountSchema.partial();
+
 export type Discount = z.infer<typeof DiscountSchema>;
 export type CreateDiscount = z.infer<typeof CreateDiscountSchema>;
+export type UpdateDiscount = z.infer<typeof UpdateDiscountSchema>;
