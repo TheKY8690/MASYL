@@ -7,12 +7,17 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { DiscountService } from './discount.service';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { NearbyDiscountQueryDto } from './dto/nearby-discount-query.dto';
 import { CreateDiscountDto } from './dto/create-discount.dto';
 import { UpdateDiscountDto } from './dto/update-discount.dto';
+import { AuthGuard } from '../auth/auth.guard';
+import type { AuthUser } from '@masyl/types';
+import { CurrentUser } from '../auth/current-user.decorater';
 
 @ApiTags('discounts')
 @Controller('discounts')
@@ -32,9 +37,11 @@ export class DiscountController {
   }
 
   @Get()
-  @ApiOperation({ summary: '전체 할인 목록' })
-  findAll() {
-    return this.discountService.findAll();
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '전체 할인 목록 (amdin=전체, user=active만)' })
+  findAll(@CurrentUser() user: AuthUser) {
+    return this.discountService.findAll(user.id);
   }
 
   @Get(':id')
@@ -44,32 +51,42 @@ export class DiscountController {
   }
 
   @Post()
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '할인 등록' })
-  create(@Body() dto: CreateDiscountDto) {
-    return this.discountService.create(dto);
+  create(@Body() dto: CreateDiscountDto, @CurrentUser() user: AuthUser) {
+    return this.discountService.create(dto, user.id);
   }
 
   @Patch(':id/approve')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '할인 승인' })
-  approve(@Param('id') id: string) {
-    return this.discountService.approve(id);
+  approve(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.discountService.approve(id, user.id);
   }
 
   @Patch(':id/reject')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '할인 거절' })
-  reject(@Param('id') id: string) {
-    return this.discountService.reject(id);
+  reject(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.discountService.reject(id, user.id);
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '할인 수정' })
   update(@Param('id') id: string, @Body() dto: UpdateDiscountDto) {
     return this.discountService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: '할인 삭제' })
-  remove(@Param('id') id: string) {
-    return this.discountService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.discountService.remove(id, user.id);
   }
 }

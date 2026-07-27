@@ -50,8 +50,28 @@ export class DiscountService {
     }
   }
   //전체 목록 (개발 중 — 전체 반환. auth 추가 후 role 분기 예정)
-  findAll() {
-    return this.db.select().from(schema.discounts);
+  findAll(userId: string) {
+    const [profile] = await this.db
+      .select({ role: schema.profiles.role })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, userId))
+      .limit(1);
+
+    if (profile?.role === 'admin') {
+      return this.db.select().from(schema.discounts);
+    }
+    return this.db
+      .select()
+      .from(schema.discounts)
+      .where(
+        and(
+          eq(schema.discounts.status, 'active'),
+          or(
+            isNull(schema.discounts.validUntil),
+            gt(schema.discounts.validUntil, new Date()),
+          ),
+        ),
+      );
   }
 
   // 내부 존재 확인용 — status 무관 (update/remove/approve/reject에서 사용)
@@ -216,28 +236,31 @@ export class DiscountService {
   }
 
   //삭제
-  async remove(id: string) {
+  async remove(id: string, adminId: string) {
+    await this.assertAdmin(adminId);
     await this.findOneInternal(id);
     await this.db.delete(schema.discounts).where(eq(schema.discounts.id, id));
   }
 
   //승인 // TODO: auth 추가 후 assertAdmin(userId) 호출
-  async approve(id: string) {
+  async approve(id: string, adminId: string) {
+    await this.assertAdmin(adminId);
     await this.findOneInternal(id);
     const [updated] = await this.db
       .update(schema.discounts)
-      .set({ status: 'active', verifiedAt: new Date() })
+      .set({ status: 'active', verifiedAt: new Date(), verifiedBy: adminId })
       .where(eq(schema.discounts.id, id))
       .returning();
     return updated;
   }
 
   //거절 // TODO: auth 추가 후 assertAdmin(userId) 호출
-  async reject(id: string) {
+  async reject(id: string, adminId: string) {
+    await this.assertAdmin(adminId);
     await this.findOneInternal(id);
     const [updated] = await this.db
       .update(schema.discounts)
-      .set({ status: 'rejected', verifiedAt: new Date() })
+      .set({ status: 'rejected', verifiedAt: new Date(), verifiedBy: adminId })
       .where(eq(schema.discounts.id, id))
       .returning();
     return updated;

@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from '../drizzle/drizzle.module';
@@ -10,6 +15,17 @@ import type { NearbyQueryDto } from './dto/nearby-query.dto';
 @Injectable()
 export class CafeService {
   constructor(@Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>) {}
+
+  private async assertAdmin(userId: string) {
+    const [profile] = await this.db
+      .select({ role: schema.profiles.role })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, userId))
+      .limit(1);
+    if (!profile || profile.role !== 'admin') {
+      throw new ForbiddenException('Admin only');
+    }
+  }
 
   findAll() {
     return this.db.select().from(schema.cafes);
@@ -32,19 +48,20 @@ export class CafeService {
       .from(schema.cafes)
       .where(
         sql`
-          6371 * acos(
+          6371 * acos(least(1,
             cos(radians(${lat})) * cos(radians(${schema.cafes.latitude}::float)) *
             cos(radians(${schema.cafes.longitude}::float) - radians(${lng})) +
             sin(radians(${lat})) * sin(radians(${schema.cafes.latitude}::float))
-          ) <= ${radius}
+          )) <= ${radius}
         `,
       );
   }
 
-  async create(dto: CreateCafeDto) {
+  async create(dto: CreateCafeDto, ownerId?: string) {
     const [cafe] = await this.db
       .insert(schema.cafes)
       .values({
+        ownerId: ownerId ?? null,
         name: dto.name,
         address: dto.address,
         latitude: String(dto.latitude),
@@ -83,7 +100,8 @@ export class CafeService {
     return updated;
   }
 
-  async remove(id: string) {
+  async remove(id: string, adminId: string) {
+    await this.assertAdmin(adminId);
     const [deleted] = await this.db
       .delete(schema.cafes)
       .where(eq(schema.cafes.id, id))
