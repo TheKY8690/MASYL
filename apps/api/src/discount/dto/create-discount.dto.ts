@@ -50,7 +50,8 @@ export class CreateDiscountDto {
 
   @ApiProperty({ enum: DiscountSourceTypeEnum, description: '출처 구분' })
   @IsEnum(DiscountSourceTypeEnum)
-  sourceType!: DiscountSourceTypeEnum;
+  @IsOptional()
+  sourceType?: DiscountSourceTypeEnum;
 
   @ApiPropertyOptional({
     description: '할인 시작일 (ISO8601), null이면 즉시 유효',

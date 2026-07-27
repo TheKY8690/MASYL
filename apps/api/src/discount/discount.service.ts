@@ -49,8 +49,8 @@ export class DiscountService {
       throw new BadRequestException('validUntil must be after validFrom');
     }
   }
-  //전체 목록 (개발 중 — 전체 반환. auth 추가 후 role 분기 예정)
-  findAll(userId: string) {
+  //전체 목록
+  async findAll(userId: string) {
     const [profile] = await this.db
       .select({ role: schema.profiles.role })
       .from(schema.profiles)
@@ -180,7 +180,18 @@ export class DiscountService {
   }
 
   //할인 등록
-  async create(dto: CreateDiscountDto, userId?: string) {
+  async create(dto: CreateDiscountDto, userId: string) {
+    const [profile] = await this.db
+      .select({ role: schema.profiles.role })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, userId))
+      .limit(1);
+    const sourceType =
+      profile?.role === 'admin'
+        ? dto.sourceType
+        : profile?.role === 'seller'
+          ? 'seller_registered'
+          : 'user_report';
     this.assertDateRange(dto.validFrom, dto.validUntil);
     const [discount] = await this.db
       .insert(schema.discounts)
@@ -190,7 +201,7 @@ export class DiscountService {
         description: dto.description,
         discountType: dto.discountType,
         discountValue: dto.discountValue,
-        sourceType: dto.sourceType,
+        sourceType,
         validFrom: dto.validFrom ? new Date(dto.validFrom) : null,
         validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
         createdBy: userId ?? null,
@@ -200,8 +211,16 @@ export class DiscountService {
   }
 
   //할인 수정
-  async update(id: string, dto: UpdateDiscountDto) {
+  async update(id: string, dto: UpdateDiscountDto, userId: string) {
     const existing = await this.findOneInternal(id);
+    const [profile] = await this.db
+      .select({ role: schema.profiles.role })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, userId))
+      .limit(1);
+    if (profile?.role !== 'admin' && existing.createdBy !== userId) {
+      throw new ForbiddenException('수정 권한 없음');
+    }
     const mergedFrom =
       dto.validFrom !== undefined
         ? dto.validFrom
@@ -242,7 +261,7 @@ export class DiscountService {
     await this.db.delete(schema.discounts).where(eq(schema.discounts.id, id));
   }
 
-  //승인 // TODO: auth 추가 후 assertAdmin(userId) 호출
+  //승인
   async approve(id: string, adminId: string) {
     await this.assertAdmin(adminId);
     await this.findOneInternal(id);
@@ -254,7 +273,7 @@ export class DiscountService {
     return updated;
   }
 
-  //거절 // TODO: auth 추가 후 assertAdmin(userId) 호출
+  //거절
   async reject(id: string, adminId: string) {
     await this.assertAdmin(adminId);
     await this.findOneInternal(id);

@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { DiscountService } from './discount.service';
@@ -17,7 +16,7 @@ import { CreateDiscountDto } from './dto/create-discount.dto';
 import { UpdateDiscountDto } from './dto/update-discount.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import type { AuthUser } from '@masyl/types';
-import { CurrentUser } from '../auth/current-user.decorater';
+import { CurrentUser } from '../auth/current-user.decorator';
 
 @ApiTags('discounts')
 @Controller('discounts')
@@ -78,8 +77,12 @@ export class DiscountController {
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: '할인 수정' })
-  update(@Param('id') id: string, @Body() dto: UpdateDiscountDto) {
-    return this.discountService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateDiscountDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.discountService.update(id, dto, user.id);
   }
 
   @Delete(':id')
