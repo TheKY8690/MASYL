@@ -24,4 +24,22 @@ export class NearbyDiscountQueryDto {
   @IsOptional()
   @Type(() => Number)
   radius?: number = 1;
+
+  @ApiPropertyOptional({
+    description: '한 페이지 결과 수, 기본값 20',
+    default: 20,
+  })
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number;
+
+  @ApiPropertyOptional({ description: '건너 뛸 결과 수, 기본값 0', default: 0 })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @Type(() => Number)
+  offset?: number;
 }
