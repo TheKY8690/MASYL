@@ -10,7 +10,7 @@ export class AuthService {
   constructor(@Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>) {}
 
   async upsertUser(supabaseUser: AuthUser) {
-    const email = supabaseUser.email ?? supabaseUser.user_metadata?.email;
+    const email = supabaseUser.email;
     if (!email) {
       throw new BadRequestException('이메일을 제공하지 않은 계정입니다');
     }

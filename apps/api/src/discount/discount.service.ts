@@ -188,7 +188,7 @@ export class DiscountService {
       .limit(1);
     const sourceType =
       profile?.role === 'admin'
-        ? dto.sourceType
+        ? (dto.sourceType ?? 'user_report')
         : profile?.role === 'seller'
           ? 'seller_registered'
           : 'user_report';
