@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { AuthUser } from '@masyl/types';
@@ -10,6 +10,27 @@ export class AuthService {
   constructor(@Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>) {}
 
   async upsertUser(supabaseUser: AuthUser) {
+    const email = supabaseUser.email;
+    if (!email) {
+      throw new BadRequestException('이메일을 제공하지 않은 계정입니다');
+    }
+
+    const rawProvider = supabaseUser.app_metadata?.provider;
+    const validProvider = ['google', 'kakao'] as const;
+    if (
+      !validProvider.includes(rawProvider as (typeof validProvider)[number])
+    ) {
+      throw new BadRequestException(
+        `지원하지 않는 로그인 방식: ${rawProvider}`,
+      );
+    }
+
+    const provider = rawProvider as 'google' | 'kakao';
+
+    const displayName =
+      supabaseUser.user_metadata?.full_name ??
+      supabaseUser.user_metadata?.name ??
+      email;
     const existing = await this.db
       .select()
       .from(schema.profiles)
@@ -29,14 +50,10 @@ export class AuthService {
       .insert(schema.profiles)
       .values({
         id: supabaseUser.id,
-        email: supabaseUser.email,
-        displayName:
-          supabaseUser.user_metadata.full_name ??
-          supabaseUser.user_metadata.name ??
-          supabaseUser.email,
-        avatarUrl: supabaseUser.user_metadata.avatar_url ?? null,
-        provider: supabaseUser.app_metadata.provider as
-          'google' | 'kakao' | 'naver',
+        email,
+        displayName,
+        avatarUrl: supabaseUser.user_metadata?.avatar_url ?? null,
+        provider,
       })
       .returning();
 

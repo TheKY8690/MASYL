@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { SocialProviderSchema } from './auth';
 
-export const RoleSchema = z.enum(['user', 'admin']);
+export const RoleSchema = z.enum(['user', 'admin', 'seller']);
 export type Role = z.infer<typeof RoleSchema>;
 
 export const ProfileSchema = z.object({

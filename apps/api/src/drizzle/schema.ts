@@ -16,7 +16,7 @@ import { authenticatedRole } from 'drizzle-orm/supabase';
 // seller: 카페 소유주. 자신의 카페 할인을 직접 등록할 수 있는 권한.
 export const roleEnum = pgEnum('role', ['user', 'admin', 'seller']);
 // 소셜 로그인 제공자. Supabase Auth 소셜 로그인 전용 (이메일/비밀번호 없음).
-export const providerEnum = pgEnum('provider', ['google', 'kakao', 'naver']);
+export const providerEnum = pgEnum('provider', ['google', 'kakao']);
 
 /**
  * [사용처] 4대 기능 모두의 중심 엔티티.
