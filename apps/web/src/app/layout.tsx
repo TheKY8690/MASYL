@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import Script from 'next/script';
 import Providers from './providers';
 import { GNB } from '../components/GNB/GNB';
+import { SplashScreen } from '../components/SplashScreen/SplashScreen';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           strategy="afterInteractive"
         />
         <Providers>
+          <SplashScreen />
           <GNB />
           {children}
         </Providers>
