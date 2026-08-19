@@ -60,8 +60,18 @@ ${rawContent}
       text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/);
     const raw = jsonMatch?.[1] ?? text;
 
-    const parsed = JSON.parse(raw) as ExtractedDiscount | null;
+    let parsed: ExtractedDiscount | null;
+    try {
+      parsed = JSON.parse(raw) as ExtractedDiscount | null;
+    } catch {
+      this.logger.warn(
+        `Failed to parse JSON for ${brandName}: ${raw.slice(0, 100)}`,
+      );
+      return null;
+    }
     if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.title || parsed.title === 'null') return null;
+    if (!parsed.discountType || !parsed.discountValue) return null;
 
     this.logger.log(
       `Extracted discount for ${brandName}: "${parsed.title}" (${parsed.discountType})`,
