@@ -38,7 +38,7 @@ export function MiniMap({ onSelectCafe }: MiniMapProps) {
 
   const markers: MapMarkerData[] = MINI_MARKERS.map((m) => ({
     ...m,
-    onClick: onSelectCafe,
+    ...(onSelectCafe ? { onClick: onSelectCafe } : {}),
   }));
 
   useKakaoMap(containerRef, {
@@ -48,7 +48,7 @@ export function MiniMap({ onSelectCafe }: MiniMapProps) {
     draggable: false,
     scrollwheel: false,
     markers,
-    userLocation: userLocation ?? undefined,
+    ...(userLocation ? { userLocation } : {}),
   });
 
   return (

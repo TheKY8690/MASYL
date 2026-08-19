@@ -52,7 +52,7 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
   const markers: MapMarkerData[] = MOCK_MARKERS.map((m) => ({
     ...m,
     selected: selectedCafe?.id === m.cafeId,
-    onClick: onSelectCafe,
+    ...(onSelectCafe ? { onClick: onSelectCafe } : {}),
   }));
 
   const mapRef = useKakaoMap(containerRef, {
@@ -60,7 +60,7 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
     centerLng: userLocation?.lng ?? CENTER_LNG,
     level: 4,
     markers,
-    userLocation: userLocation ?? undefined,
+    ...(userLocation ? { userLocation } : {}),
   });
 
   const handleLocationClick = () => {

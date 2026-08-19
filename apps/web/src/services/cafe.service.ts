@@ -16,5 +16,7 @@ export async function getCafesNearby(query: NearbyQuery, token?: string) {
     ...(query.limit && { limit: String(query.limit) }),
     ...(query.offset && { offset: String(query.offset) }),
   });
-  return apiFetch<unknown[]>(`/cafes/nearby?${params}`, { token });
+  return apiFetch<unknown[]>(`/cafes/nearby?${params}`, {
+    ...(token !== undefined ? { token } : {}),
+  });
 }
