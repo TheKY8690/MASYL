@@ -18,7 +18,7 @@ export class DiscountExtractor {
 
   constructor(private configService: ConfigService) {
     this.client = new Anthropic({
-      apiKey: configService.getOrThrow('ANTHROPIC_API_KEY'),
+      apiKey: configService.get('ANTHROPIC_API_KEY') ?? 'placeholder',
     });
   }
 
