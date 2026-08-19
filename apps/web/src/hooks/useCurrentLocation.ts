@@ -18,28 +18,32 @@ export function useCurrentLocation() {
         const { latitude: lat, longitude: lng } = pos.coords;
 
         const tryGeocode = (retries = 0) => {
-          if (!window.kakao?.maps?.services) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const services = (window.kakao?.maps as any)?.services;
+          if (!services) {
             if (retries < 30) setTimeout(() => tryGeocode(retries + 1), 100);
             return;
           }
-          const geocoder = new window.kakao.maps.services.Geocoder();
-          geocoder.coord2RegionCode(lng, lat, (result, status) => {
-            if (
-              status === window.kakao.maps.services.Status.OK &&
-              result.length > 0
-            ) {
-              const region = result[0];
-              const name = [
-                region.region_1depth_name,
-                region.region_2depth_name,
-              ]
-                .filter(Boolean)
-                .join(' ');
-              setLocationName(name);
-            } else {
-              setLocationName('위치 정보 없음');
-            }
-          });
+          const geocoder = new services.Geocoder();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          geocoder.coord2RegionCode(
+            lng,
+            lat,
+            (result: any[], status: string) => {
+              if (status === services.Status.OK && result.length > 0) {
+                const region = result[0];
+                const name = [
+                  region.region_1depth_name,
+                  region.region_2depth_name,
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+                setLocationName(name);
+              } else {
+                setLocationName('위치 정보 없음');
+              }
+            },
+          );
         };
 
         tryGeocode();
