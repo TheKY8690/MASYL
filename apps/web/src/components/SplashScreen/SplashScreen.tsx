@@ -30,6 +30,7 @@ export function SplashScreen() {
 
   useLayoutEffect(() => {
     if (sessionStorage.getItem(STORAGE_KEY)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPhase('done');
       return;
     }
