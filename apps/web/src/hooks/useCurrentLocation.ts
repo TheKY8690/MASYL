@@ -1,0 +1,50 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+export function useCurrentLocation() {
+  const [locationName, setLocationName] = useState<string>('위치 확인 중...');
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationName('위치 정보 없음');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+
+        const tryGeocode = (retries = 0) => {
+          if (!window.kakao?.maps?.services) {
+            if (retries < 30) setTimeout(() => tryGeocode(retries + 1), 100);
+            return;
+          }
+          const geocoder = new window.kakao.maps.services.Geocoder();
+          geocoder.coord2RegionCode(lng, lat, (result, status) => {
+            if (
+              status === window.kakao.maps.services.Status.OK &&
+              result.length > 0
+            ) {
+              const region = result[0];
+              const name = [
+                region.region_1depth_name,
+                region.region_2depth_name,
+              ]
+                .filter(Boolean)
+                .join(' ');
+              setLocationName(name);
+            } else {
+              setLocationName('위치 정보 없음');
+            }
+          });
+        };
+
+        tryGeocode();
+      },
+      () => setLocationName('위치 정보 없음'),
+    );
+  }, []);
+
+  return locationName;
+}

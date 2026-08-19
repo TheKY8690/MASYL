@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCurrentLocation } from '../../hooks/useCurrentLocation';
 import { Toast } from '../Toast/Toast';
 import {
   gnb,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
 
 export function GNB() {
   const [showToast, setShowToast] = useState(false);
+  const locationName = useCurrentLocation();
 
   const handleComingSoon = () => {
     if (showToast) return;
@@ -53,7 +55,7 @@ export function GNB() {
         <div className={right}>
           <button className={locationChip}>
             <span className={locationDot} />
-            서울시 강남구
+            {locationName}
           </button>
           <button className={profileBtn}>Z</button>
         </div>

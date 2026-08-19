@@ -98,3 +98,10 @@ export const cardList = style({
   flexDirection: 'column',
   gap: vars.space.md,
 });
+
+export const emptyState = style({
+  padding: `${vars.space.lg} 0`,
+  textAlign: 'center',
+  fontSize: '14px',
+  color: vars.color.muted,
+});
