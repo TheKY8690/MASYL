@@ -5,6 +5,7 @@ import { DrizzleModule } from './drizzle/drizzle.module';
 import { CafeModule } from './cafe/cafe.module';
 import { DiscountModule } from './discount/discount.module';
 import { ReportModule } from './report/report.module';
+import { CrawlModule } from './crawl/crawl.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ReportModule } from './report/report.module';
     CafeModule,
     DiscountModule,
     ReportModule,
+    CrawlModule,
   ],
 })
 export class AppModule {}
