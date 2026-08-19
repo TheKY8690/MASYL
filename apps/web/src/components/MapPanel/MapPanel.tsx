@@ -1,13 +1,11 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
 import type { CafeCardData } from '../CafeCard/CafeCard';
+import { useKakaoMap, type MapMarkerData } from '../../hooks/useKakaoMap';
 import {
   panel,
-  mapPlaceholder,
-  roadH,
-  roadV,
-  radiusCircle,
-  userMarker,
-  priceMarker,
-  hotChip,
+  mapContainer,
   locationBtn,
   selectedPanel,
   selectedName,
@@ -17,23 +15,15 @@ import {
   catchBtn,
 } from './MapPanel.css';
 
-interface MapMarker {
-  cafeId: string;
-  name: string;
-  price: number;
-  x: number;
-  y: number;
-  hot?: boolean;
-}
+// 강남구 중심 좌표 (mock — 추후 사용자 위치로 교체)
+const CENTER_LAT = 37.5172;
+const CENTER_LNG = 127.0473;
 
-const MOCK_MARKERS: MapMarker[] = [
-  { cafeId: '1', name: '메가커피', price: 1000, x: 38, y: 42, hot: true },
-  { cafeId: '2', name: '컴포즈커피', price: 1200, x: 62, y: 30 },
-  { cafeId: '3', name: '빽다방', price: 900, x: 58, y: 65 },
+const MOCK_MARKERS: Omit<MapMarkerData, 'onClick' | 'selected'>[] = [
+  { cafeId: '1', lat: 37.5185, lng: 127.0458, price: 1000, hot: true },
+  { cafeId: '2', lat: 37.516, lng: 127.049, price: 1200 },
+  { cafeId: '3', lat: 37.5155, lng: 127.0445, price: 900 },
 ];
-
-const ROADS_H = [20, 40, 55, 70, 85];
-const ROADS_V = [20, 35, 50, 65, 80];
 
 interface MapPanelProps {
   selectedCafe?: CafeCardData | null;
@@ -41,35 +31,56 @@ interface MapPanelProps {
 }
 
 export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }),
+      () => {},
+    );
+  }, []);
+
+  const markers: MapMarkerData[] = MOCK_MARKERS.map((m) => ({
+    ...m,
+    selected: selectedCafe?.id === m.cafeId,
+    onClick: onSelectCafe,
+  }));
+
+  const mapRef = useKakaoMap(containerRef, {
+    centerLat: userLocation?.lat ?? CENTER_LAT,
+    centerLng: userLocation?.lng ?? CENTER_LNG,
+    level: 4,
+    markers,
+    userLocation: userLocation ?? undefined,
+  });
+
+  const handleLocationClick = () => {
+    if (!mapRef.current) return;
+    const lat = userLocation?.lat ?? CENTER_LAT;
+    const lng = userLocation?.lng ?? CENTER_LNG;
+    mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
+  };
+
   return (
     <div className={panel}>
-      <div className={mapPlaceholder}>
-        {ROADS_H.map((top) => (
-          <div key={top} className={roadH} style={{ top: `${top}%` }} />
-        ))}
-        {ROADS_V.map((left) => (
-          <div key={left} className={roadV} style={{ left: `${left}%` }} />
-        ))}
+      <div ref={containerRef} className={mapContainer} />
 
-        <div className={radiusCircle} />
-        <div className={userMarker}>👤</div>
-
-        {MOCK_MARKERS.map((marker) => (
-          <button
-            key={marker.cafeId}
-            className={priceMarker}
-            style={{ left: `${marker.x}%`, top: `${marker.y}%` }}
-            onClick={() => onSelectCafe?.(marker.cafeId)}
-          >
-            {marker.hot && <span className={hotChip}>HOT</span>}
-            {marker.price.toLocaleString()}원
-          </button>
-        ))}
-
-        <button className={locationBtn} title="내 위치">
-          ⊕
-        </button>
-      </div>
+      <button
+        className={locationBtn}
+        title="내 위치"
+        onClick={handleLocationClick}
+      >
+        ⊕
+      </button>
 
       {selectedCafe && (
         <div className={selectedPanel}>

@@ -1,22 +1,16 @@
-import {
-  container,
-  roadH,
-  roadV,
-  radiusCircle,
-  userMarker,
-  priceMarker,
-  hotChip,
-  overlay,
-  overlayHint,
-} from './MiniMap.css';
+'use client';
 
-const ROADS_H = [25, 50, 75];
-const ROADS_V = [25, 50, 75];
+import { useEffect, useRef, useState } from 'react';
+import { useKakaoMap, type MapMarkerData } from '../../hooks/useKakaoMap';
+import { container, mapContainer, overlay, overlayHint } from './MiniMap.css';
 
-const MARKERS = [
-  { id: '1', price: 1000, x: 35, y: 40, hot: true },
-  { id: '2', price: 1200, x: 63, y: 28 },
-  { id: '3', price: 900, x: 57, y: 65 },
+const CENTER_LAT = 37.5172;
+const CENTER_LNG = 127.0473;
+
+const MINI_MARKERS: Omit<MapMarkerData, 'onClick' | 'selected'>[] = [
+  { cafeId: '1', lat: 37.5185, lng: 127.0458, price: 1000, hot: true },
+  { cafeId: '2', lat: 37.516, lng: 127.049, price: 1200 },
+  { cafeId: '3', lat: 37.5155, lng: 127.0445, price: 900 },
 ];
 
 interface MiniMapProps {
@@ -24,30 +18,42 @@ interface MiniMapProps {
 }
 
 export function MiniMap({ onSelectCafe }: MiniMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setUserLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }),
+      () => {},
+    );
+  }, []);
+
+  const markers: MapMarkerData[] = MINI_MARKERS.map((m) => ({
+    ...m,
+    onClick: onSelectCafe,
+  }));
+
+  useKakaoMap(containerRef, {
+    centerLat: userLocation?.lat ?? CENTER_LAT,
+    centerLng: userLocation?.lng ?? CENTER_LNG,
+    level: 5,
+    draggable: false,
+    scrollwheel: false,
+    markers,
+    userLocation: userLocation ?? undefined,
+  });
+
   return (
-    <div className={container}>
-      {ROADS_H.map((top) => (
-        <div key={top} className={roadH} style={{ top: `${top}%` }} />
-      ))}
-      {ROADS_V.map((left) => (
-        <div key={left} className={roadV} style={{ left: `${left}%` }} />
-      ))}
-
-      <div className={radiusCircle} />
-      <div className={userMarker}>👤</div>
-
-      {MARKERS.map((m) => (
-        <button
-          key={m.id}
-          className={priceMarker}
-          style={{ left: `${m.x}%`, top: `${m.y}%` }}
-          onClick={() => onSelectCafe?.(m.id)}
-        >
-          {m.hot && <span className={hotChip}>HOT</span>}
-          {m.price.toLocaleString()}원
-        </button>
-      ))}
-
+    <div className={container} onClick={() => onSelectCafe?.('')}>
+      <div ref={containerRef} className={mapContainer} />
       <div className={overlay}>
         <span className={overlayHint}>지도에서 더 보기 →</span>
       </div>

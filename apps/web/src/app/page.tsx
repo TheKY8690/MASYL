@@ -106,7 +106,7 @@ export default function HomePage() {
           <SearchStatusPill message="아이스 아메리카노 특가 찾는 중" />
           <MiniMap
             onSelectCafe={(id) => {
-              handleSelectCafe(id);
+              if (id) handleSelectCafe(id);
               setActiveTab('map');
             }}
           />
