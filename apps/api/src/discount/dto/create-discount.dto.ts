@@ -12,6 +12,7 @@ export enum DiscountTypeEnum {
   PERCENT = 'percent',
   AMOUNT = 'amount',
   FREE_ITEM = 'free_item',
+  COUPON = 'coupon',
   OTHER = 'other',
 }
 
@@ -22,9 +23,19 @@ export enum DiscountSourceTypeEnum {
 }
 
 export class CreateDiscountDto {
-  @ApiProperty({ description: '할인 대상 카페 UUID' })
+  @ApiPropertyOptional({
+    description: '브랜드 전체 할인 시 브랜드 UUID (cafeId와 둘 중 하나 필수)',
+  })
   @IsUUID()
-  cafeId!: string;
+  @IsOptional()
+  brandId?: string;
+
+  @ApiPropertyOptional({
+    description: '특정 지점 할인 시 카페 UUID (brandId와 둘 중 하나 필수)',
+  })
+  @IsUUID()
+  @IsOptional()
+  cafeId?: string;
 
   @ApiProperty({ description: '할인명, 목록/카드 UI에 표시', maxLength: 200 })
   @IsString()

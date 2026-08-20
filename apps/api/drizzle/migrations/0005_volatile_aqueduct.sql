@@ -1,0 +1,1 @@
+ALTER TYPE "public"."discount_type" ADD VALUE 'coupon' BEFORE 'other';
