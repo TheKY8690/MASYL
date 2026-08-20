@@ -166,6 +166,9 @@ export const discounts = pgTable(
     discountType: discountTypeEnum('discount_type').notNull(), // 할인 유형 (percent/amount/free_item/other)
     discountValue: varchar('discount_value', { length: 100 }).notNull(), // 할인 값. "10%" / "500원" / "아메리카노 1잔"
 
+    // 이벤트 원본 페이지 URL. 상세보기 외부 링크로 사용. auto_crawl 시 LLM이 추출.
+    eventUrl: varchar('event_url', { length: 500 }),
+
     sourceType: discountSourceTypeEnum('source_type').notNull(), // 출처 구분. 신뢰도 배지 표시에 활용
     status: discountStatusEnum('status').default('pending_review').notNull(), // 현재 상태. 앱 노출 여부 결정
 

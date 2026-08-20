@@ -10,10 +10,14 @@ type CrawlStatus = 'all' | 'pending' | 'processed' | 'failed';
 
 interface CrawledEvent {
   id: string;
-  cafeId: string;
+  brandId: string;
+  brandName: string | null;
   sourceUrl: string;
   status: 'pending' | 'processed' | 'failed';
   summary: string | null;
+  discountTitle: string | null;
+  discountValidFrom: string | null;
+  discountValidUntil: string | null;
   processedAt: string | null;
   collectedAt: string;
   discountId: string | null;
@@ -194,21 +198,28 @@ export default function CrawlPage() {
           >
             <thead>
               <tr style={{ background: '#f9fafb', textAlign: 'left' }}>
-                {['소스 URL', '상태', '요약', '수집시각', '처리시각', ''].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: '10px 12px',
-                        borderBottom: '1px solid #e5e7eb',
-                        fontWeight: 600,
-                        color: '#374151',
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
+                {[
+                  '브랜드',
+                  '소스 URL',
+                  '상태',
+                  '할인명',
+                  '이벤트 기간',
+                  '수집시각',
+                  '',
+                ].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: '1px solid #e5e7eb',
+                      fontWeight: 600,
+                      color: '#374151',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -217,7 +228,16 @@ export default function CrawlPage() {
                   <td
                     style={{
                       padding: '10px 12px',
-                      maxWidth: 220,
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {ev.brandName ?? '—'}
+                  </td>
+                  <td
+                    style={{
+                      padding: '10px 12px',
+                      maxWidth: 200,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -249,34 +269,50 @@ export default function CrawlPage() {
                   <td
                     style={{
                       padding: '10px 12px',
-                      color: '#6b7280',
-                      maxWidth: 240,
+                      color: '#374151',
+                      maxWidth: 220,
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {ev.summary ?? '—'}
+                    {ev.discountTitle ?? ev.summary ?? '—'}
+                  </td>
+                  <td
+                    style={{
+                      padding: '10px 12px',
+                      whiteSpace: 'nowrap',
+                      fontSize: 12,
+                      color: '#6b7280',
+                    }}
+                  >
+                    {ev.discountValidFrom || ev.discountValidUntil ? (
+                      <>
+                        {ev.discountValidFrom
+                          ? new Date(ev.discountValidFrom).toLocaleDateString(
+                              'ko-KR',
+                            )
+                          : '?'}
+                        {' ~ '}
+                        {ev.discountValidUntil
+                          ? new Date(ev.discountValidUntil).toLocaleDateString(
+                              'ko-KR',
+                            )
+                          : '무기한'}
+                      </>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td
                     style={{
                       padding: '10px 12px',
                       color: '#6b7280',
                       whiteSpace: 'nowrap',
+                      fontSize: 12,
                     }}
                   >
                     {new Date(ev.collectedAt).toLocaleString('ko-KR')}
-                  </td>
-                  <td
-                    style={{
-                      padding: '10px 12px',
-                      color: '#6b7280',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {ev.processedAt
-                      ? new Date(ev.processedAt).toLocaleString('ko-KR')
-                      : '—'}
                   </td>
                   <td style={{ padding: '10px 12px' }}>
                     {ev.status === 'failed' && (

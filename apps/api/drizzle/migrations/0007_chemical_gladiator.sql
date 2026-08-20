@@ -1,0 +1,1 @@
+ALTER TABLE "discounts" ADD COLUMN "event_url" varchar(500);

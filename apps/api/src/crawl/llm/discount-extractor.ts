@@ -9,6 +9,7 @@ export interface ExtractedDiscount {
   discountValue: string;
   validFrom?: string;
   validUntil?: string;
+  eventUrl?: string; // 이벤트 원본 페이지 URL (서브페이지 URL 마커에서 추출)
 }
 
 @Injectable()
@@ -16,7 +17,7 @@ export class DiscountExtractor {
   private readonly logger = new Logger(DiscountExtractor.name);
   private readonly client: Anthropic;
 
-  constructor(private configService: ConfigService) {
+  constructor(configService: ConfigService) {
     this.client = new Anthropic({
       apiKey: configService.get('ANTHROPIC_API_KEY') ?? 'placeholder',
     });
@@ -54,6 +55,7 @@ URL: ${sourceUrl}
 ${rawContent}
 
 여러 혜택이 있으면 오늘 기준 가장 임박한(종료일이 가까운) 1건만 선택하세요.
+내용에 [https://...] 형태의 URL 마커가 있으면, 선택한 이벤트가 수집된 서브페이지 URL을 eventUrl로 추출하세요.
 JSON으로만 응답 (배열 금지, 단일 객체). 현재 유효한 혜택이 없으면 null.
 {
   "title": "이벤트/혜택명 (최대 100자)",
@@ -61,7 +63,8 @@ JSON으로만 응답 (배열 금지, 단일 객체). 현재 유효한 혜택이 
   "discountType": "percent | amount | free_item | coupon | other",
   "discountValue": "예: 30% 또는 1000원 또는 아이스아메리카노 1잔",
   "validFrom": "YYYY-MM-DD 또는 null",
-  "validUntil": "YYYY-MM-DD 또는 null"
+  "validUntil": "YYYY-MM-DD 또는 null",
+  "eventUrl": "이벤트 원본 페이지 URL 또는 null"
 }`;
 
     const message = await this.client.messages.create({

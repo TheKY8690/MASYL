@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from '../drizzle/drizzle.module';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, getTableColumns, isNotNull } from 'drizzle-orm';
 import { WebsiteScraper } from './scrapers/website.scraper';
 import { DiscountExtractor } from './llm/discount-extractor';
 import { CrawledEventQueryDto } from './dto/crawled-event-query.dto';
@@ -44,8 +44,22 @@ export class CrawlService {
       ? [eq(schema.crawledEvents.status, query.status)]
       : [];
     return this.db
-      .select()
+      .select({
+        ...getTableColumns(schema.crawledEvents),
+        brandName: schema.brands.name,
+        discountValidFrom: schema.discounts.validFrom,
+        discountValidUntil: schema.discounts.validUntil,
+        discountTitle: schema.discounts.title,
+      })
       .from(schema.crawledEvents)
+      .leftJoin(
+        schema.brands,
+        eq(schema.crawledEvents.brandId, schema.brands.id),
+      )
+      .leftJoin(
+        schema.discounts,
+        eq(schema.crawledEvents.discountId, schema.discounts.id),
+      )
       .where(conditions.length ? and(...conditions) : undefined)
       .limit(query.limit ?? 20)
       .offset(query.offset ?? 0)
@@ -145,6 +159,7 @@ export class CrawlService {
           description: extracted.description,
           discountType: extracted.discountType,
           discountValue: extracted.discountValue,
+          eventUrl: extracted.eventUrl ?? null,
           sourceType: 'auto_crawl',
           status: 'pending_review',
           validFrom: extracted.validFrom ? new Date(extracted.validFrom) : null,
