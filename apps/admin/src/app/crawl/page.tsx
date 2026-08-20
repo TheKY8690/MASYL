@@ -41,7 +41,7 @@ export default function CrawlPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<CrawlStatus>('all');
   const [toast, setToast] = useState<string | null>(null);
-  const [isCrawling, setIsCrawling] = useState(false);
+  const [crawlTriggered, setCrawlTriggered] = useState(false);
 
   useEffect(() => {
     if (token === null) {
@@ -58,17 +58,21 @@ export default function CrawlPage() {
     queryKey: ['crawl-progress'],
     queryFn: () =>
       apiFetch<CrawlProgress>('/crawled-events/progress', { token: token! }),
-    enabled: !!token && isCrawling,
-    refetchInterval: 1500,
+    enabled: !!token && crawlTriggered,
+    refetchInterval: (query) =>
+      query.state.data?.isRunning === false ? false : 1500,
   });
 
+  const isCrawling = crawlTriggered && progress?.isRunning !== false;
+
   useEffect(() => {
-    if (isCrawling && progress && !progress.isRunning) {
-      setIsCrawling(false);
+    if (crawlTriggered && progress && !progress.isRunning) {
       void qc.invalidateQueries({ queryKey: ['crawled-events'] });
-      showToast(`크롤링 완료: ${progress.current}개 처리`);
+      setTimeout(() => {
+        showToast(`크롤링 완료: ${progress.current}개 처리`);
+      }, 0);
     }
-  }, [progress, isCrawling, qc]);
+  }, [crawlTriggered, progress, qc]);
 
   const params = filter !== 'all' ? `?status=${filter}&limit=50` : '?limit=50';
 
@@ -88,7 +92,8 @@ export default function CrawlPage() {
         ...(token ? { token } : {}),
       }),
     onSuccess: () => {
-      setIsCrawling(true);
+      void qc.invalidateQueries({ queryKey: ['crawl-progress'] });
+      setCrawlTriggered(true);
     },
     onError: () => showToast('크롤링 실패. 로그 확인 요망.'),
   });
