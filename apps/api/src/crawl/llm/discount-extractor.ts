@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 export interface ExtractedDiscount {
   title: string;
   description: string;
-  discountType: 'percent' | 'amount' | 'free_item' | 'other';
+  discountType: 'percent' | 'amount' | 'free_item' | 'coupon' | 'other';
   discountValue: string;
   validFrom?: string;
   validUntil?: string;
@@ -27,19 +27,29 @@ export class DiscountExtractor {
     sourceUrl: string,
     rawContent: string,
   ): Promise<ExtractedDiscount | null> {
-    const prompt = `당신은 한국 커피 체인의 이벤트 페이지에서 할인 정보를 추출하는 AI입니다.
+    const prompt = `당신은 한국 커피 체인의 이벤트/프로모션 페이지에서 고객에게 혜택을 주는 정보를 추출하는 AI입니다.
+
+추출 대상 (다음 중 하나라도 해당하면 추출):
+- 할인 (가격 인하, % 할인, 정액 할인)
+- 쿠폰 (앱 쿠폰, 다운로드 쿠폰, 증정 쿠폰)
+- 이벤트 혜택 (구매 시 증정, 스탬프 적립, 경품)
+- 신메뉴 출시 이벤트 (출시 기념 할인 또는 증정 포함된 경우)
+- 멤버십/포인트 혜택
+
+추출하지 않는 것: 단순 신메뉴 소개(혜택 없음), 브랜드 홍보 콘텐츠
 
 브랜드: ${brandName}
 URL: ${sourceUrl}
 내용:
 ${rawContent}
 
-다음 JSON 형식으로만 응답하세요. 할인 정보가 없으면 null을 반환하세요.
+여러 혜택이 있으면 가장 대표적인 1건만 선택하세요.
+다음 JSON 형식으로만 응답하세요 (배열 금지, 단일 객체). 혜택 정보가 없으면 null을 반환하세요.
 {
-  "title": "이벤트명 (최대 100자)",
-  "description": "상세 설명",
-  "discountType": "percent | amount | free_item | other",
-  "discountValue": "예: 30% 또는 1000원 또는 아이스아메리카노 1잔",
+  "title": "이벤트/혜택명 (최대 100자)",
+  "description": "혜택 상세 설명 (조건, 대상 메뉴, 적용 방법 포함)",
+  "discountType": "percent | amount | free_item | coupon | other",
+  "discountValue": "예: 30% 또는 1000원 또는 아이스아메리카노 1잔 또는 앱 쿠폰 다운로드",
   "validFrom": "YYYY-MM-DD 또는 null",
   "validUntil": "YYYY-MM-DD 또는 null"
 }`;

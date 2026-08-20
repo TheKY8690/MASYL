@@ -64,21 +64,21 @@ export class CrawlService {
   }
 
   async runCrawl(): Promise<{ processed: number; failed: number }> {
-    const cafes = await this.db
+    const brands = await this.db
       .select()
-      .from(schema.cafes)
-      .where(isNotNull(schema.cafes.websiteUrl));
+      .from(schema.brands)
+      .where(isNotNull(schema.brands.websiteUrl));
 
-    this.logger.log(`Starting crawl for ${cafes.length} cafes`);
+    this.logger.log(`Starting crawl for ${brands.length} brands`);
     let processed = 0;
     let failed = 0;
 
-    for (const cafe of cafes) {
+    for (const brand of brands) {
       try {
-        await this.crawlCafe(cafe);
+        await this.crawlBrand(brand);
         processed++;
       } catch (e) {
-        this.logger.error(`Failed to crawl cafe ${cafe.name}: ${String(e)}`);
+        this.logger.error(`Failed to crawl brand ${brand.name}: ${String(e)}`);
         failed++;
       }
       await sleep(2000);
@@ -88,16 +88,16 @@ export class CrawlService {
     return { processed, failed };
   }
 
-  private async crawlCafe(
-    cafe: typeof schema.cafes.$inferSelect,
+  private async crawlBrand(
+    brand: typeof schema.brands.$inferSelect,
   ): Promise<void> {
-    const websiteUrl = cafe.websiteUrl!;
+    const websiteUrl = brand.websiteUrl!;
     const rawContent = await this.scraper.scrape(websiteUrl);
 
     const [event] = await this.db
       .insert(schema.crawledEvents)
       .values({
-        cafeId: cafe.id,
+        brandId: brand.id,
         sourceType: 'website',
         sourceUrl: websiteUrl,
         rawContent,
@@ -105,7 +105,7 @@ export class CrawlService {
       .returning();
 
     if (!event) throw new Error('Failed to insert crawledEvent');
-    await this.processEvent(event, cafe.name);
+    await this.processEvent(event, brand.name);
   }
 
   async reprocess(id: string, adminId: string) {
@@ -140,7 +140,7 @@ export class CrawlService {
       const [discount] = await this.db
         .insert(schema.discounts)
         .values({
-          cafeId: event.cafeId,
+          brandId: event.brandId,
           title: extracted.title,
           description: extracted.description,
           discountType: extracted.discountType,

@@ -15,7 +15,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '서울특별시 강남구 테헤란로 (본사)',
     latitude: '37.5172',
     longitude: '127.0473',
-    websiteUrl: 'https://www.megacoffee.net/event/list',
+    websiteUrl: 'https://www.mega-mgccoffee.com/bbs/?bbs_category=3',
     isVerified: true,
   },
   {
@@ -23,7 +23,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '부산광역시 해운대구 센텀중앙로 (본사)',
     latitude: '35.1695',
     longitude: '129.1330',
-    websiteUrl: 'https://composecoffee.com/board/event',
+    websiteUrl: 'https://composecoffee.com/event',
     isVerified: true,
   },
   {
@@ -31,7 +31,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '서울특별시 강남구 영동대로 (본사)',
     latitude: '37.5172',
     longitude: '127.0473',
-    websiteUrl: 'https://www.paik.com/paiksdabang/event',
+    websiteUrl: 'https://paikdabang.com/news/?cate=event',
     isVerified: true,
   },
   {
@@ -39,7 +39,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '서울특별시 마포구 (본사)',
     latitude: '37.5560',
     longitude: '126.9089',
-    websiteUrl: 'https://theventi.co.kr/event',
+    websiteUrl: 'https://www.theventi.co.kr/new2022/news/event.html',
     isVerified: true,
   },
   {
@@ -47,7 +47,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '서울특별시 중구 을지로 (본사)',
     latitude: '37.5663',
     longitude: '126.9997',
-    websiteUrl: 'https://www.ediya.com/event/eventList.do',
+    websiteUrl: 'https://www.ediya.com/contents/event.html?tb_name=event',
     isVerified: true,
   },
   {
@@ -55,7 +55,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '충청남도 천안시 (본사)',
     latitude: '36.8151',
     longitude: '127.1139',
-    websiteUrl: 'https://www.coffeebay.co.kr/event',
+    websiteUrl: 'https://www.coffeebay.com/news/event',
     isVerified: true,
   },
   {
@@ -63,7 +63,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '대구광역시 수성구 (본사)',
     latitude: '35.8592',
     longitude: '128.6344',
-    websiteUrl: 'https://www.yogerpresso.com/event',
+    websiteUrl: 'https://www.yogerpresso.co.kr/community/event.html',
     isVerified: true,
   },
   {
@@ -71,7 +71,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '서울특별시 강남구 (본사)',
     latitude: '37.5172',
     longitude: '127.0473',
-    websiteUrl: 'https://dalkomm.com/event',
+    websiteUrl: 'https://www.dalkomm.com/story',
     isVerified: true,
   },
   {
@@ -79,15 +79,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '서울특별시 마포구 (본사)',
     latitude: '37.5560',
     longitude: '126.9089',
-    websiteUrl: 'https://mammothcoffee.co.kr/event',
-    isVerified: true,
-  },
-  {
-    name: '드롭탑',
-    address: '경기도 성남시 분당구 (본사)',
-    latitude: '37.3825',
-    longitude: '127.1178',
-    websiteUrl: 'https://www.droptop.co.kr/event',
+    websiteUrl: 'https://mmthcoffee.com/sub/event/list.html',
     isVerified: true,
   },
   {
@@ -99,27 +91,11 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     isVerified: true,
   },
   {
-    name: '카페베네',
-    address: '서울특별시 강남구 (본사)',
-    latitude: '37.5172',
-    longitude: '127.0473',
-    websiteUrl: 'https://www.caffebene.co.kr/event',
-    isVerified: true,
-  },
-  {
     name: '할리스',
     address: '서울특별시 중구 을지로 (본사)',
     latitude: '37.5663',
     longitude: '126.9997',
-    websiteUrl: 'https://www.hollys.co.kr/event',
-    isVerified: true,
-  },
-  {
-    name: '투썸플레이스',
-    address: '서울특별시 강남구 테헤란로 (본사)',
-    latitude: '37.5172',
-    longitude: '127.0473',
-    websiteUrl: 'https://www.twosomeplace.co.kr/event',
+    websiteUrl: 'https://www.hollys.co.kr/news/event/list.do',
     isVerified: true,
   },
   {
@@ -127,7 +103,7 @@ const BRAND_CAFES: (typeof schema.cafes.$inferInsert)[] = [
     address: '서울특별시 중구 을지로 (본사)',
     latitude: '37.5663',
     longitude: '126.9997',
-    websiteUrl: 'https://www.starbucks.co.kr/whats_new/eventList.do',
+    websiteUrl: 'https://www.starbucks.co.kr/whats_new/campaign_list.do',
     isVerified: true,
   },
 ];

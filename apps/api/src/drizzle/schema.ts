@@ -19,11 +19,40 @@ export const roleEnum = pgEnum('role', ['user', 'admin', 'seller']);
 export const providerEnum = pgEnum('provider', ['google', 'kakao']);
 
 /**
- * [사용처] 4대 기능 모두의 중심 엔티티.
+ * [사용처] 브랜드 정보. 체인 카페 브랜드 단위로 이벤트 크롤링 소스 관리.
+ * - 크롤러가 website_url을 기준으로 이벤트 수집
+ * - 수집된 할인은 brand_id로 연결 → 전국 해당 브랜드 지점 모두에 적용
+ */
+export const brands = pgTable(
+  'brands',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 100 }).notNull().unique(), // 브랜드명. 크롤러 식별자
+    websiteUrl: varchar('website_url', { length: 500 }), // 크롤링 대상 이벤트 페이지 URL
+    logoUrl: varchar('logo_url', { length: 500 }), // 브랜드 로고. 앱 UI 표시용
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  () => [
+    pgPolicy('brands select for authenticated', {
+      for: 'select',
+      to: authenticatedRole,
+      using: sql`true`,
+    }),
+    pgPolicy('brands write for admin', {
+      for: 'all',
+      to: authenticatedRole,
+      using: sql`(SELECT role FROM profiles WHERE id = auth.uid()) = 'admin'`,
+    }),
+  ],
+);
+
+/**
+ * [사용처] 4대 기능 모두의 중심 엔티티. 개별 카페 지점.
  * - 기능1(주변카페조회): latitude/longitude 기반 반경 내 카페 검색
- * - 기능2(자동수집): website_url, instagram_handle, kakao_place_id, naver_place_id로 소스 크롤링
  * - 기능3(사용자제보): 제보 대상 카페 특정
  * - 기능4(판매자등록): owner_id = seller profile, 본인 카페의 할인만 등록 가능
+ * - brand_id: 체인 브랜드 소속이면 FK. null이면 독립 카페.
  */
 export const cafes = pgTable(
   'cafes',
@@ -32,6 +61,9 @@ export const cafes = pgTable(
 
     // 판매자가 직접 등록한 카페의 경우 seller profile id. null이면 어드민이 등록한 카페.
     ownerId: uuid('owner_id').references(() => profiles.id),
+
+    // 체인 브랜드 소속이면 brands.id FK. null이면 독립 카페.
+    brandId: uuid('brand_id').references(() => brands.id),
 
     name: varchar('name', { length: 100 }).notNull(), // 카페 이름. 검색/목록 표시용
     address: text('address').notNull(), // 도로명 주소. 상세 페이지 표시용
@@ -90,11 +122,12 @@ export const discountSourceTypeEnum = pgEnum('discount_source_type', [
 ]);
 
 // 할인 유형. UI에서 적절한 형식으로 표시하기 위해 구분
-// - percent: "10% 할인" / amount: "500원 할인" / free_item: "아메리카노 1잔 무료" / other: 기타
+// - percent: "10% 할인" / amount: "500원 할인" / free_item: "아메리카노 1잔 무료" / coupon: "앱 쿠폰/증정 쿠폰" / other: 기타
 export const discountTypeEnum = pgEnum('discount_type', [
   'percent',
   'amount',
   'free_item',
+  'coupon',
   'other',
 ]);
 
@@ -121,9 +154,11 @@ export const discounts = pgTable(
   'discounts',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    cafeId: uuid('cafe_id')
-      .references(() => cafes.id)
-      .notNull(), // 어느 카페의 할인인지
+
+    // 브랜드 전체 적용 할인 (auto_crawl). brand_id OR cafe_id 둘 중 하나는 반드시 존재.
+    brandId: uuid('brand_id').references(() => brands.id),
+    // 특정 지점 할인 (user_report, seller_registered). brand_id가 있으면 null 가능.
+    cafeId: uuid('cafe_id').references(() => cafes.id),
 
     title: varchar('title', { length: 200 }).notNull(), // 할인명. 목록/카드 UI에 표시
     description: text('description'), // 상세 설명. 상세 페이지에 표시. nullable
@@ -211,9 +246,9 @@ export const crawledEvents = pgTable(
   'crawled_events',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    cafeId: uuid('cafe_id')
-      .references(() => cafes.id)
-      .notNull(), // 어느 카페 소스에서 수집했는지
+    brandId: uuid('brand_id')
+      .references(() => brands.id)
+      .notNull(), // 어느 브랜드 소스에서 수집했는지
 
     // 수집 소스 플랫폼. 크롤러 종류 구분 및 출처 표시에 사용
     sourceType: crawledEventSourceTypeEnum('source_type').notNull(),
