@@ -24,8 +24,15 @@ interface CrawledEvent {
 }
 
 interface TriggerResult {
-  processed: number;
-  failed: number;
+  message: string;
+}
+
+interface CrawlProgress {
+  isRunning: boolean;
+  total: number;
+  current: number;
+  currentBrand: string;
+  percent: number;
 }
 
 export default function CrawlPage() {
@@ -34,6 +41,7 @@ export default function CrawlPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<CrawlStatus>('all');
   const [toast, setToast] = useState<string | null>(null);
+  const [isCrawling, setIsCrawling] = useState(false);
 
   useEffect(() => {
     if (token === null) {
@@ -45,6 +53,22 @@ export default function CrawlPage() {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   };
+
+  const { data: progress } = useQuery({
+    queryKey: ['crawl-progress'],
+    queryFn: () =>
+      apiFetch<CrawlProgress>('/crawled-events/progress', { token: token! }),
+    enabled: !!token && isCrawling,
+    refetchInterval: 1500,
+  });
+
+  useEffect(() => {
+    if (isCrawling && progress && !progress.isRunning) {
+      setIsCrawling(false);
+      void qc.invalidateQueries({ queryKey: ['crawled-events'] });
+      showToast(`크롤링 완료: ${progress.current}개 처리`);
+    }
+  }, [progress, isCrawling, qc]);
 
   const params = filter !== 'all' ? `?status=${filter}&limit=50` : '?limit=50';
 
@@ -63,11 +87,8 @@ export default function CrawlPage() {
         method: 'POST',
         ...(token ? { token } : {}),
       }),
-    onSuccess: (result) => {
-      showToast(
-        `크롤링 완료: 처리 ${result.processed}개, 실패 ${result.failed}개`,
-      );
-      void qc.invalidateQueries({ queryKey: ['crawled-events'] });
+    onSuccess: () => {
+      setIsCrawling(true);
     },
     onError: () => showToast('크롤링 실패. 로그 확인 요망.'),
   });
@@ -161,9 +182,45 @@ export default function CrawlPage() {
             opacity: triggerMutation.isPending ? 0.7 : 1,
           }}
         >
-          {triggerMutation.isPending ? '실행 중...' : '크롤링 실행'}
+          {triggerMutation.isPending
+            ? '시작 중...'
+            : isCrawling
+              ? '실행 중...'
+              : '크롤링 실행'}
         </button>
       </div>
+
+      {isCrawling && progress && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>
+            {progress.currentBrand
+              ? `${progress.currentBrand} 처리 중...`
+              : '준비 중...'}{' '}
+            ({progress.current}/{progress.total})
+          </div>
+          <div
+            style={{
+              background: '#e5e7eb',
+              borderRadius: 99,
+              height: 8,
+              width: 300,
+            }}
+          >
+            <div
+              style={{
+                background: '#6366f1',
+                borderRadius: 99,
+                height: 8,
+                width: `${progress.percent}%`,
+                transition: 'width 0.4s ease',
+              }}
+            />
+          </div>
+          <div style={{ fontSize: 12, color: '#6366f1', marginTop: 4 }}>
+            {progress.percent}%
+          </div>
+        </div>
+      )}
 
       {/* 탭 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>

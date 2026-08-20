@@ -21,6 +21,25 @@ function sleep(ms: number) {
 export class CrawlService {
   private readonly logger = new Logger(CrawlService.name);
 
+  private crawlProgress = {
+    isRunning: false,
+    total: 0,
+    current: 0,
+    currentBrand: '',
+  };
+
+  getProgress() {
+    return {
+      ...this.crawlProgress,
+      percent:
+        this.crawlProgress.total > 0
+          ? Math.round(
+              (this.crawlProgress.current / this.crawlProgress.total) * 100,
+            )
+          : 0,
+    };
+  }
+
   constructor(
     @Inject(DRIZZLE) private db: NodePgDatabase<typeof schema>,
     private scraper: WebsiteScraper,
@@ -84,18 +103,32 @@ export class CrawlService {
       .where(isNotNull(schema.brands.websiteUrl));
 
     this.logger.log(`Starting crawl for ${brands.length} brands`);
+    this.crawlProgress = {
+      isRunning: true,
+      total: brands.length,
+      current: 0,
+      currentBrand: '',
+    };
     let processed = 0;
     let failed = 0;
 
-    for (const brand of brands) {
-      try {
-        await this.crawlBrand(brand);
-        processed++;
-      } catch (e) {
-        this.logger.error(`Failed to crawl brand ${brand.name}: ${String(e)}`);
-        failed++;
+    try {
+      for (const brand of brands) {
+        this.crawlProgress.current++;
+        this.crawlProgress.currentBrand = brand.name;
+        try {
+          await this.crawlBrand(brand);
+          processed++;
+        } catch (e) {
+          this.logger.error(
+            `Failed to crawl brand ${brand.name}: ${String(e)}`,
+          );
+          failed++;
+        }
+        await sleep(2000);
       }
-      await sleep(2000);
+    } finally {
+      this.crawlProgress.isRunning = false;
     }
 
     this.logger.log(`Crawl complete. processed=${processed} failed=${failed}`);

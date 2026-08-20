@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Controller,
   Get,
   Param,
@@ -27,6 +28,12 @@ export class CrawlController {
     return this.crawlService.findAll(user.id, query);
   }
 
+  @Get('progress')
+  @ApiOperation({ summary: '크롤링 진행률 조회 (admin)' })
+  getProgress() {
+    return this.crawlService.getProgress();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '크롤링 이벤트 단건 조회 (admin)' })
   findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
@@ -36,10 +43,12 @@ export class CrawlController {
   @Post('trigger')
   @ApiOperation({ summary: '크롤링 수동 실행 (admin)' })
   trigger(@CurrentUser() user: AuthUser) {
-    // admin 체크는 runCrawl 내부에서 하지 않으므로 여기서 처리
-    // runCrawl은 스케줄러에서도 호출되므로 별도 assertAdmin 불필요
-    void user; // admin 확인은 AuthGuard + 서비스 레벨에서 처리
-    return this.crawlService.runCrawl();
+    void user;
+    if (this.crawlService.getProgress().isRunning) {
+      throw new ConflictException('크롤링이 이미 실행 중입니다');
+    }
+    void this.crawlService.runCrawl();
+    return { message: '크롤링 시작됨' };
   }
 
   @Patch(':id/reprocess')
