@@ -111,6 +111,32 @@ export default function CrawlPage() {
     onError: () => showToast('재처리 실패'),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/crawled-events/${id}`, {
+        method: 'DELETE',
+        ...(token ? { token } : {}),
+      }),
+    onSuccess: () => {
+      showToast('삭제 완료');
+      void qc.invalidateQueries({ queryKey: ['crawled-events'] });
+    },
+    onError: () => showToast('삭제 실패'),
+  });
+
+  const deleteAllFailedMutation = useMutation({
+    mutationFn: () =>
+      apiFetch<{ deleted: number }>('/crawled-events/failed', {
+        method: 'DELETE',
+        ...(token ? { token } : {}),
+      }),
+    onSuccess: (data) => {
+      showToast(`실패 항목 ${String(data.deleted)}개 삭제 완료`);
+      void qc.invalidateQueries({ queryKey: ['crawled-events'] });
+    },
+    onError: () => showToast('전체 삭제 실패'),
+  });
+
   if (!token) {
     return (
       <div style={{ padding: 32, textAlign: 'center' }}>
@@ -192,6 +218,22 @@ export default function CrawlPage() {
             : isCrawling
               ? '실행 중...'
               : '크롤링 실행'}
+        </button>
+        <button
+          onClick={() => deleteAllFailedMutation.mutate()}
+          disabled={deleteAllFailedMutation.isPending}
+          style={{
+            background: '#fee2e2',
+            color: '#b91c1c',
+            border: 'none',
+            borderRadius: 8,
+            padding: '10px 20px',
+            fontWeight: 600,
+            cursor: deleteAllFailedMutation.isPending ? 'wait' : 'pointer',
+            opacity: deleteAllFailedMutation.isPending ? 0.7 : 1,
+          }}
+        >
+          {deleteAllFailedMutation.isPending ? '삭제 중...' : '실패 전체 삭제'}
         </button>
       </div>
 
@@ -378,22 +420,40 @@ export default function CrawlPage() {
                   </td>
                   <td style={{ padding: '10px 12px' }}>
                     {ev.status === 'failed' && (
-                      <button
-                        onClick={() => reprocessMutation.mutate(ev.id)}
-                        disabled={reprocessMutation.isPending}
-                        style={{
-                          background: '#fef3c7',
-                          color: '#92400e',
-                          border: 'none',
-                          borderRadius: 6,
-                          padding: '4px 12px',
-                          cursor: 'pointer',
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        재처리
-                      </button>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          onClick={() => reprocessMutation.mutate(ev.id)}
+                          disabled={reprocessMutation.isPending}
+                          style={{
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '4px 12px',
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          재처리
+                        </button>
+                        <button
+                          onClick={() => deleteMutation.mutate(ev.id)}
+                          disabled={deleteMutation.isPending}
+                          style={{
+                            background: '#fee2e2',
+                            color: '#b91c1c',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '4px 12px',
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          삭제
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

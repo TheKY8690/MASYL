@@ -1,5 +1,6 @@
 import * as schema from '../drizzle/schema';
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -153,6 +154,26 @@ export class CrawlService {
 
     if (!event) throw new Error('Failed to insert crawledEvent');
     await this.processEvent(event, brand.name);
+  }
+
+  async remove(id: string, adminId: string) {
+    const event = await this.findOne(id, adminId);
+    if (event.status !== 'failed') {
+      throw new BadRequestException('failed 상태 이벤트만 삭제할 수 있습니다');
+    }
+    await this.db
+      .delete(schema.crawledEvents)
+      .where(eq(schema.crawledEvents.id, id));
+    return { deleted: 1 };
+  }
+
+  async removeAllFailed(adminId: string) {
+    await this.assertAdmin(adminId);
+    const deleted = await this.db
+      .delete(schema.crawledEvents)
+      .where(eq(schema.crawledEvents.status, 'failed'))
+      .returning({ id: schema.crawledEvents.id });
+    return { deleted: deleted.length };
   }
 
   async reprocess(id: string, adminId: string) {
