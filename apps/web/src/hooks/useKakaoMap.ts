@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface MapMarkerData {
   cafeId: string;
   lat: number;
   lng: number;
-  price: number;
+  name?: string;
+  price?: number;
   hot?: boolean;
   selected?: boolean;
   onClick?: (cafeId: string) => void;
@@ -22,7 +23,7 @@ interface UseKakaoMapOptions {
   userLocation?: { lat: number; lng: number };
 }
 
-function buildMarkerEl(marker: MapMarkerData): HTMLButtonElement {
+function buildPricePillEl(marker: MapMarkerData): HTMLElement {
   const el = document.createElement('button');
 
   const baseStyle = [
@@ -57,7 +58,9 @@ function buildMarkerEl(marker: MapMarkerData): HTMLButtonElement {
     el.appendChild(chip);
   }
 
-  el.appendChild(document.createTextNode(`${marker.price.toLocaleString()}원`));
+  el.appendChild(
+    document.createTextNode(`${marker.price!.toLocaleString()}원`),
+  );
 
   if (marker.onClick) {
     el.addEventListener('click', (e) => {
@@ -69,13 +72,16 @@ function buildMarkerEl(marker: MapMarkerData): HTMLButtonElement {
   return el;
 }
 
+type MapObject = kakao.maps.CustomOverlay;
+
 export function useKakaoMap(
   containerRef: React.RefObject<HTMLDivElement | null>,
   options: UseKakaoMapOptions,
 ) {
   const mapRef = useRef<kakao.maps.Map | null>(null);
-  const overlaysRef = useRef<kakao.maps.CustomOverlay[]>([]);
+  const markersRef = useRef<MapObject[]>([]);
   const userOverlayRef = useRef<kakao.maps.CustomOverlay | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   // Initialize map once
   useEffect(() => {
@@ -93,6 +99,7 @@ export function useKakaoMap(
         draggable: options.draggable ?? true,
         scrollwheel: options.scrollwheel ?? true,
       });
+      setMapReady(true);
     };
 
     let retries = 0;
@@ -112,7 +119,7 @@ export function useKakaoMap(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [containerRef]);
 
-  // Sync user location marker whenever userLocation changes
+  // Sync user location marker
   useEffect(() => {
     if (!options.userLocation) return;
 
@@ -146,7 +153,6 @@ export function useKakaoMap(
       return true;
     };
 
-    // Map might still be initializing — retry until ready
     let retries = 0;
     const tryApply = () => {
       if (!applyUserMarker() && retries < 30) {
@@ -157,29 +163,59 @@ export function useKakaoMap(
     tryApply();
   }, [options.userLocation]);
 
-  // Sync markers whenever markers array changes
+  // Sync markers
   useEffect(() => {
     if (!mapRef.current) return;
 
-    overlaysRef.current.forEach((o) => o.setMap(null));
-    overlaysRef.current = [];
+    markersRef.current.forEach((m) => m.setMap(null));
+    markersRef.current = [];
 
     const markers = options.markers ?? [];
     markers.forEach((marker) => {
       const position = new window.kakao.maps.LatLng(marker.lat, marker.lng);
-      const content = buildMarkerEl(marker);
 
-      const overlay = new window.kakao.maps.CustomOverlay({
-        position,
-        content,
-        zIndex: marker.selected ? 10 : 5,
-        clickable: true,
-      });
+      if (marker.price !== undefined) {
+        // 가격 pill — CustomOverlay 유지
+        const content = buildPricePillEl(marker);
+        const overlay = new window.kakao.maps.CustomOverlay({
+          position,
+          content,
+          zIndex: marker.selected ? 10 : 5,
+          clickable: true,
+        });
+        overlay.setMap(mapRef.current!);
+        markersRef.current.push(overlay);
+      } else {
+        // 이미지 마커 — CustomOverlay + img 직접 전달 (배경 컨테이너 없음)
+        const size = marker.selected ? 60 : 50;
+        const img = document.createElement('img');
+        img.src = '/마실마커.png';
+        img.width = size;
+        img.height = size;
+        img.style.cssText =
+          'display:block;cursor:pointer;mix-blend-mode:multiply;';
+        img.alt = marker.name ?? '카페';
 
-      overlay.setMap(mapRef.current!);
-      overlaysRef.current.push(overlay);
+        if (marker.onClick) {
+          img.addEventListener('click', (e) => {
+            e.stopPropagation();
+            marker.onClick!(marker.cafeId);
+          });
+        }
+
+        const overlay = new window.kakao.maps.CustomOverlay({
+          position,
+          content: img,
+          xAnchor: 0.5,
+          yAnchor: 1.0,
+          zIndex: marker.selected ? 10 : 5,
+          clickable: true,
+        });
+        overlay.setMap(mapRef.current!);
+        markersRef.current.push(overlay);
+      }
     });
-  }, [options.markers]);
+  }, [options.markers, mapReady]);
 
   return mapRef;
 }

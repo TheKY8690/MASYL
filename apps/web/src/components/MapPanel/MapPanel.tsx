@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CafeCardData } from '../CafeCard/CafeCard';
 import { useKakaoMap, type MapMarkerData } from '../../hooks/useKakaoMap';
+import { useKakaoPlaces, type KakaoPlace } from '../../hooks/useKakaoPlaces';
 import {
   panel,
   mapContainer,
@@ -10,20 +11,8 @@ import {
   selectedPanel,
   selectedName,
   selectedMeta,
-  selectedPrice,
-  bestCatchBadge,
   catchBtn,
 } from './MapPanel.css';
-
-// 강남구 중심 좌표 (mock — 추후 사용자 위치로 교체)
-const CENTER_LAT = 37.5172;
-const CENTER_LNG = 127.0473;
-
-const MOCK_MARKERS: Omit<MapMarkerData, 'onClick' | 'selected'>[] = [
-  { cafeId: '1', lat: 37.5185, lng: 127.0458, price: 1000, hot: true },
-  { cafeId: '2', lat: 37.516, lng: 127.049, price: 1200 },
-  { cafeId: '3', lat: 37.5155, lng: 127.0445, price: 900 },
-];
 
 interface MapPanelProps {
   selectedCafe?: CafeCardData | null;
@@ -36,6 +25,7 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
     lat: number;
     lng: number;
   } | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<KakaoPlace | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -49,26 +39,50 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
     );
   }, []);
 
-  const markers: MapMarkerData[] = MOCK_MARKERS.map((m) => ({
-    ...m,
-    selected: selectedCafe?.id === m.cafeId,
-    ...(onSelectCafe ? { onClick: onSelectCafe } : {}),
-  }));
+  const places = useKakaoPlaces({
+    lat: userLocation?.lat,
+    lng: userLocation?.lng,
+    radius: 1000,
+  });
+
+  const handleSelect = useCallback(
+    (id: string) => {
+      const found = places.find((pl) => pl.id === id) ?? null;
+      setSelectedPlace(found);
+      if (onSelectCafe) onSelectCafe(id);
+    },
+    [places, onSelectCafe],
+  );
+
+  const markers = useMemo<MapMarkerData[]>(
+    () =>
+      places.map((p) => ({
+        cafeId: p.id,
+        lat: parseFloat(p.y),
+        lng: parseFloat(p.x),
+        name: p.place_name,
+        selected: selectedPlace?.id === p.id,
+        onClick: handleSelect,
+      })),
+    [places, selectedPlace?.id, handleSelect],
+  );
 
   const mapRef = useKakaoMap(containerRef, {
-    centerLat: userLocation?.lat ?? CENTER_LAT,
-    centerLng: userLocation?.lng ?? CENTER_LNG,
+    centerLat: userLocation?.lat ?? 37.5172,
+    centerLng: userLocation?.lng ?? 127.0473,
     level: 4,
     markers,
     ...(userLocation ? { userLocation } : {}),
   });
 
   const handleLocationClick = () => {
-    if (!mapRef.current) return;
-    const lat = userLocation?.lat ?? CENTER_LAT;
-    const lng = userLocation?.lng ?? CENTER_LNG;
-    mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
+    if (!mapRef.current || !userLocation) return;
+    mapRef.current.setCenter(
+      new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+    );
   };
+
+  const activePanel = selectedCafe ?? null;
 
   return (
     <div className={panel}>
@@ -82,14 +96,15 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
         ⊕
       </button>
 
-      {selectedCafe && (
+      {/* 할인 카페 선택 패널 (기존) */}
+      {activePanel && (
         <div className={selectedPanel}>
           <div
             style={{
               width: 48,
               height: 48,
               borderRadius: 8,
-              backgroundColor: selectedCafe.logoColor,
+              backgroundColor: activePanel.logoColor,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -99,29 +114,54 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
               flexShrink: 0,
             }}
           >
-            {selectedCafe.name.slice(0, 2)}
+            {activePanel.name.slice(0, 2)}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className={selectedName}>{selectedCafe.name}</div>
+            <div className={selectedName}>{activePanel.name}</div>
             <div className={selectedMeta}>
-              {selectedCafe.distance}m · 도보{' '}
-              {Math.ceil(selectedCafe.distance / 80)}분
-            </div>
-            <div className={selectedPrice}>
-              {selectedCafe.item} {selectedCafe.priceValue.toLocaleString()}원{' '}
-              <span
-                style={{
-                  fontSize: 12,
-                  color: '#999',
-                  textDecoration: 'line-through',
-                }}
-              >
-                {selectedCafe.originalPriceValue.toLocaleString()}원
-              </span>
+              {activePanel.distance}m · 도보{' '}
+              {Math.ceil(activePanel.distance / 80)}분
             </div>
           </div>
-          <span className={bestCatchBadge}>BEST CATCH</span>
           <button className={catchBtn}>잡기</button>
+        </div>
+      )}
+
+      {/* 카카오 장소검색 카페 선택 패널 */}
+      {!activePanel && selectedPlace && (
+        <div className={selectedPanel}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 8,
+              background: '#6F4E37',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#fff',
+              flexShrink: 0,
+            }}
+          >
+            {selectedPlace.place_name.slice(0, 2)}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className={selectedName}>{selectedPlace.place_name}</div>
+            <div className={selectedMeta}>
+              {selectedPlace.distance
+                ? `${selectedPlace.distance}m`
+                : selectedPlace.road_address_name || selectedPlace.address_name}
+            </div>
+          </div>
+          <button
+            className={catchBtn}
+            onClick={() => setSelectedPlace(null)}
+            style={{ background: '#e5e7eb', color: '#374151' }}
+          >
+            닫기
+          </button>
         </div>
       )}
     </div>
