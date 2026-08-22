@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export interface ExtractedDiscount {
   title: string;
@@ -15,12 +15,12 @@ export interface ExtractedDiscount {
 @Injectable()
 export class DiscountExtractor {
   private readonly logger = new Logger(DiscountExtractor.name);
-  private readonly client: Anthropic;
+  private readonly genAI: GoogleGenerativeAI;
 
   constructor(configService: ConfigService) {
-    this.client = new Anthropic({
-      apiKey: configService.get('ANTHROPIC_API_KEY') ?? 'placeholder',
-    });
+    this.genAI = new GoogleGenerativeAI(
+      configService.get('GEMINI_API_KEY') ?? '',
+    );
   }
 
   async extract(
@@ -28,7 +28,7 @@ export class DiscountExtractor {
     sourceUrl: string,
     rawContent: string,
   ): Promise<ExtractedDiscount | null> {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const today = new Date().toISOString().slice(0, 10);
 
     const prompt = `당신은 한국 커피 체인의 이벤트/프로모션 페이지에서 고객에게 혜택을 주는 정보를 추출하는 AI입니다.
 
@@ -67,14 +67,9 @@ JSON으로만 응답 (배열 금지, 단일 객체). 현재 유효한 혜택이 
   "eventUrl": "이벤트 원본 페이지 URL 또는 null"
 }`;
 
-    const message = await this.client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const firstContent = message.content[0];
-    const text = firstContent?.type === 'text' ? firstContent.text.trim() : '';
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
 
     if (!text || text === 'null') return null;
 
