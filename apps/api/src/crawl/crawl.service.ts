@@ -1,5 +1,6 @@
 import * as schema from '../drizzle/schema';
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -8,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from '../drizzle/drizzle.module';
-import { and, eq, getTableColumns, isNotNull } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray, isNotNull, lt } from 'drizzle-orm';
 import { WebsiteScraper } from './scrapers/website.scraper';
 import { DiscountExtractor } from './llm/discount-extractor';
 import { CrawledEventQueryDto } from './dto/crawled-event-query.dto';
@@ -155,6 +156,39 @@ export class CrawlService {
     await this.processEvent(event, brand.name);
   }
 
+  async remove(id: string, adminId: string) {
+    const event = await this.findOne(id, adminId);
+    if (event.status !== 'failed') {
+      throw new BadRequestException('failed 상태 이벤트만 삭제할 수 있습니다');
+    }
+    await this.db
+      .delete(schema.crawledEvents)
+      .where(eq(schema.crawledEvents.id, id));
+    return { deleted: 1 };
+  }
+
+  async removeAllFailed(adminId: string) {
+    await this.assertAdmin(adminId);
+    const deleted = await this.db
+      .delete(schema.crawledEvents)
+      .where(eq(schema.crawledEvents.status, 'failed'))
+      .returning({ id: schema.crawledEvents.id });
+    return { deleted: deleted.length };
+  }
+
+  async expireOldDiscounts(): Promise<number> {
+    const result = await this.db
+      .delete(schema.discounts)
+      .where(
+        and(
+          isNotNull(schema.discounts.validUntil),
+          lt(schema.discounts.validUntil, new Date()),
+        ),
+      )
+      .returning({ id: schema.discounts.id });
+    return result.length;
+  }
+
   async reprocess(id: string, adminId: string) {
     const event = await this.findOne(id, adminId);
     await this.processEvent(event, '');
@@ -172,7 +206,7 @@ export class CrawlService {
         event.rawContent,
       );
 
-      if (!extracted) {
+      if (extracted.length === 0) {
         await this.db
           .update(schema.crawledEvents)
           .set({
@@ -184,34 +218,65 @@ export class CrawlService {
         return;
       }
 
-      const [discount] = await this.db
-        .insert(schema.discounts)
-        .values({
-          brandId: event.brandId,
-          title: extracted.title,
-          description: extracted.description,
-          discountType: extracted.discountType,
-          discountValue: extracted.discountValue,
-          eventUrl: extracted.eventUrl ?? null,
-          sourceType: 'auto_crawl',
-          status: 'pending_review',
-          validFrom: extracted.validFrom ? new Date(extracted.validFrom) : null,
-          validUntil: extracted.validUntil
-            ? new Date(extracted.validUntil)
-            : null,
-          crawledEventId: event.id,
-        })
-        .returning();
+      const existing = await this.db
+        .select({ title: schema.discounts.title })
+        .from(schema.discounts)
+        .where(
+          and(
+            eq(schema.discounts.brandId, event.brandId),
+            inArray(schema.discounts.status, ['active', 'pending_review']),
+          ),
+        );
 
-      if (!discount) throw new Error('Failed to insert discount');
+      const existingTitles = new Set(
+        existing.map((d) => d.title.toLowerCase().trim()),
+      );
+
+      const newDiscounts = extracted.filter(
+        (e) => !existingTitles.has(e.title.toLowerCase().trim()),
+      );
+
+      if (newDiscounts.length === 0) {
+        this.logger.log(
+          `No new discounts for brand ${event.brandId} (all duplicates)`,
+        );
+        await this.db
+          .update(schema.crawledEvents)
+          .set({
+            status: 'processed',
+            processedAt: new Date(),
+            summary: '신규 할인 없음 (중복)',
+          })
+          .where(eq(schema.crawledEvents.id, event.id));
+        return;
+      }
+
+      const inserted = await this.db
+        .insert(schema.discounts)
+        .values(
+          newDiscounts.map((e) => ({
+            brandId: event.brandId,
+            title: e.title,
+            description: e.description,
+            discountType: e.discountType,
+            discountValue: e.discountValue,
+            eventUrl: e.eventUrl ?? null,
+            sourceType: 'auto_crawl' as const,
+            status: 'active' as const,
+            validFrom: e.validFrom ? new Date(e.validFrom) : null,
+            validUntil: e.validUntil ? new Date(e.validUntil) : null,
+            crawledEventId: event.id,
+          })),
+        )
+        .returning();
 
       await this.db
         .update(schema.crawledEvents)
         .set({
           status: 'processed',
           processedAt: new Date(),
-          summary: extracted.description,
-          discountId: discount.id,
+          summary: newDiscounts.map((e) => e.title).join(' / '),
+          discountId: inserted[0]?.id ?? null,
         })
         .where(eq(schema.crawledEvents.id, event.id));
     } catch (e) {

@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CafeCardData } from '../CafeCard/CafeCard';
 import { useKakaoMap, type MapMarkerData } from '../../hooks/useKakaoMap';
+import { useKakaoPlaces, type KakaoPlace } from '../../hooks/useKakaoPlaces';
+import type { DiscountGroup } from '../DiscountCard/DiscountCard';
 import {
   panel,
   mapContainer,
@@ -10,32 +12,44 @@ import {
   selectedPanel,
   selectedName,
   selectedMeta,
-  selectedPrice,
-  bestCatchBadge,
   catchBtn,
 } from './MapPanel.css';
 
-// 강남구 중심 좌표 (mock — 추후 사용자 위치로 교체)
-const CENTER_LAT = 37.5172;
-const CENTER_LNG = 127.0473;
-
-const MOCK_MARKERS: Omit<MapMarkerData, 'onClick' | 'selected'>[] = [
-  { cafeId: '1', lat: 37.5185, lng: 127.0458, price: 1000, hot: true },
-  { cafeId: '2', lat: 37.516, lng: 127.049, price: 1200 },
-  { cafeId: '3', lat: 37.5155, lng: 127.0445, price: 900 },
-];
+export interface DiscountMapMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  title: string;
+  discountValue: string;
+  eventUrl?: string | null;
+}
 
 interface MapPanelProps {
   selectedCafe?: CafeCardData | null;
   onSelectCafe?: (cafeId: string) => void;
+  discountMarker?: DiscountMapMarker | null;
+  onClearDiscount?: () => void;
+  selectedGroup?: DiscountGroup | null;
+  selectedDiscountId?: string | null;
+  onSelectDiscount?: (id: string) => void;
 }
 
-export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
+export function MapPanel({
+  selectedCafe,
+  onSelectCafe,
+  discountMarker,
+  onClearDiscount,
+  selectedGroup,
+  selectedDiscountId,
+  onSelectDiscount,
+}: MapPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
   } | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<KakaoPlace | null>(null);
+  const discountOverlayRef = useRef<kakao.maps.CustomOverlay | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -49,26 +63,96 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
     );
   }, []);
 
-  const markers: MapMarkerData[] = MOCK_MARKERS.map((m) => ({
-    ...m,
-    selected: selectedCafe?.id === m.cafeId,
-    ...(onSelectCafe ? { onClick: onSelectCafe } : {}),
-  }));
+  const places = useKakaoPlaces({
+    lat: userLocation?.lat,
+    lng: userLocation?.lng,
+    radius: 1000,
+  });
+
+  const handleSelect = useCallback(
+    (id: string) => {
+      const found = places.find((pl) => pl.id === id) ?? null;
+      setSelectedPlace(found);
+      if (onSelectCafe) onSelectCafe(id);
+    },
+    [places, onSelectCafe],
+  );
+
+  const markers = useMemo<MapMarkerData[]>(
+    () =>
+      places
+        .filter((p) => {
+          if (!discountMarker) return true;
+          return !(
+            Math.abs(parseFloat(p.y) - discountMarker.lat) < 0.0001 &&
+            Math.abs(parseFloat(p.x) - discountMarker.lng) < 0.0001
+          );
+        })
+        .map((p) => ({
+          cafeId: p.id,
+          lat: parseFloat(p.y),
+          lng: parseFloat(p.x),
+          name: p.place_name,
+          selected: selectedPlace?.id === p.id,
+          onClick: handleSelect,
+        })),
+    [places, selectedPlace?.id, handleSelect, discountMarker],
+  );
 
   const mapRef = useKakaoMap(containerRef, {
-    centerLat: userLocation?.lat ?? CENTER_LAT,
-    centerLng: userLocation?.lng ?? CENTER_LNG,
-    level: 4,
+    centerLat: userLocation?.lat ?? 37.5172,
+    centerLng: userLocation?.lng ?? 127.0473,
+    level: 3,
     markers,
     ...(userLocation ? { userLocation } : {}),
   });
 
+  useEffect(() => {
+    if (discountOverlayRef.current) {
+      discountOverlayRef.current.setMap(null);
+      discountOverlayRef.current = null;
+    }
+    if (!discountMarker) return;
+
+    let retries = 0;
+    const tryApply = () => {
+      if (!mapRef.current) {
+        if (retries++ < 30) setTimeout(tryApply, 100);
+        return;
+      }
+      const img = document.createElement('img');
+      img.src = '/마실마커red.png';
+      img.width = 80;
+      img.height = 80;
+      img.style.cssText = 'display:block;mix-blend-mode:multiply;';
+      img.alt = discountMarker.title;
+
+      const pos = new window.kakao.maps.LatLng(
+        discountMarker.lat,
+        discountMarker.lng,
+      );
+      discountOverlayRef.current = new window.kakao.maps.CustomOverlay({
+        position: pos,
+        content: img,
+        xAnchor: 0.5,
+        yAnchor: 1.0,
+        zIndex: 30,
+      });
+      discountOverlayRef.current.setMap(mapRef.current);
+      mapRef.current.setCenter(pos);
+    };
+    tryApply();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [discountMarker]);
+
   const handleLocationClick = () => {
-    if (!mapRef.current) return;
-    const lat = userLocation?.lat ?? CENTER_LAT;
-    const lng = userLocation?.lng ?? CENTER_LNG;
-    mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng));
+    if (!mapRef.current || !userLocation) return;
+    mapRef.current.setCenter(
+      new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+    );
   };
+
+  const activePanel = selectedCafe ?? null;
 
   return (
     <div className={panel}>
@@ -82,14 +166,15 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
         ⊕
       </button>
 
-      {selectedCafe && (
+      {/* 할인 카페 선택 패널 (기존) */}
+      {activePanel && (
         <div className={selectedPanel}>
           <div
             style={{
               width: 48,
               height: 48,
               borderRadius: 8,
-              backgroundColor: selectedCafe.logoColor,
+              backgroundColor: activePanel.logoColor,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -99,29 +184,162 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
               flexShrink: 0,
             }}
           >
-            {selectedCafe.name.slice(0, 2)}
+            {activePanel.name.slice(0, 2)}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className={selectedName}>{selectedCafe.name}</div>
+            <div className={selectedName}>{activePanel.name}</div>
             <div className={selectedMeta}>
-              {selectedCafe.distance}m · 도보{' '}
-              {Math.ceil(selectedCafe.distance / 80)}분
-            </div>
-            <div className={selectedPrice}>
-              {selectedCafe.item} {selectedCafe.priceValue.toLocaleString()}원{' '}
-              <span
-                style={{
-                  fontSize: 12,
-                  color: '#999',
-                  textDecoration: 'line-through',
-                }}
-              >
-                {selectedCafe.originalPriceValue.toLocaleString()}원
-              </span>
+              {activePanel.distance}m · 도보{' '}
+              {Math.ceil(activePanel.distance / 80)}분
             </div>
           </div>
-          <span className={bestCatchBadge}>BEST CATCH</span>
           <button className={catchBtn}>잡기</button>
+        </div>
+      )}
+
+      {/* 할인 이벤트 선택 패널 — 그룹 전체 표시 */}
+      {!activePanel && discountMarker && selectedGroup && (
+        <div
+          className={selectedPanel}
+          style={{ flexDirection: 'column', alignItems: 'stretch', gap: 0 }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: 15 }}>
+              {selectedGroup.displayName}
+            </span>
+            <button
+              className={catchBtn}
+              onClick={onClearDiscount}
+              style={{ background: '#e5e7eb', color: '#374151' }}
+            >
+              닫기
+            </button>
+          </div>
+          <div style={{ overflowY: 'auto', maxHeight: '192px' }}>
+            {selectedGroup.discounts.map((d) => (
+              <div
+                key={d.id}
+                onClick={() => onSelectDiscount?.(d.id)}
+                style={{
+                  padding: '8px 0',
+                  borderTop: '1px solid #e5e7eb',
+                  cursor: 'pointer',
+                  background:
+                    d.id === selectedDiscountId ? '#f3f4f6' : 'transparent',
+                }}
+              >
+                <div style={{ fontSize: 13, marginBottom: 4 }}>{d.title}</div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#fff',
+                      background: '#F39C12',
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    {d.discountValue}
+                  </span>
+                  {d.eventUrl && (
+                    <a
+                      href={d.eventUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: 12,
+                        color: '#3B82F6',
+                        textDecoration: 'none',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      자세히 보기 →
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* fallback: selectedGroup 없는 경우 단건 표시 */}
+      {!activePanel && discountMarker && !selectedGroup && (
+        <div className={selectedPanel}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className={selectedName}>{discountMarker.title}</div>
+            <div className={selectedMeta}>{discountMarker.discountValue}</div>
+          </div>
+          {discountMarker.eventUrl && (
+            <a
+              href={discountMarker.eventUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={catchBtn}
+              style={{ textDecoration: 'none' }}
+            >
+              자세히 보기
+            </a>
+          )}
+          <button
+            className={catchBtn}
+            onClick={onClearDiscount}
+            style={{ background: '#e5e7eb', color: '#374151' }}
+          >
+            닫기
+          </button>
+        </div>
+      )}
+
+      {/* 카카오 장소검색 카페 선택 패널 */}
+      {!activePanel && !discountMarker && selectedPlace && (
+        <div className={selectedPanel}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 8,
+              background: '#6F4E37',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#fff',
+              flexShrink: 0,
+            }}
+          >
+            {selectedPlace.place_name.slice(0, 2)}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className={selectedName}>{selectedPlace.place_name}</div>
+            <div className={selectedMeta}>
+              {selectedPlace.distance
+                ? `${selectedPlace.distance}m`
+                : selectedPlace.road_address_name || selectedPlace.address_name}
+            </div>
+          </div>
+          <button
+            className={catchBtn}
+            onClick={() => setSelectedPlace(null)}
+            style={{ background: '#e5e7eb', color: '#374151' }}
+          >
+            닫기
+          </button>
         </div>
       )}
     </div>

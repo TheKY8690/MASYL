@@ -39,7 +39,20 @@ export default function DiscountsPage() {
     queryFn: () =>
       apiFetch<Discount[]>('/discounts', { ...(token ? { token } : {}) }),
     enabled: !!token,
-    select: (data) => data.filter((d) => d.status === filter),
+    select: (data) => {
+      const filtered = data.filter((d) => d.status === filter);
+      if (filter === 'active') {
+        return filtered.sort((a, b) => {
+          if (!a.validUntil && !b.validUntil) return 0;
+          if (!a.validUntil) return 1;
+          if (!b.validUntil) return -1;
+          return (
+            new Date(a.validUntil).getTime() - new Date(b.validUntil).getTime()
+          );
+        });
+      }
+      return filtered;
+    },
   });
 
   const approveMutation = useMutation({
@@ -93,6 +106,23 @@ export default function DiscountsPage() {
     { key: 'active', label: '활성' },
     { key: 'rejected', label: '거절됨' },
   ];
+
+  const getEventStatusBadge = (validUntil: string | null) => {
+    if (!validUntil)
+      return { label: '무기한', bg: '#e5e7eb', color: '#6b7280' };
+    const now = new Date();
+    const until = new Date(validUntil);
+    const daysLeft = Math.ceil(
+      (until.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+    );
+    if (daysLeft <= 7)
+      return {
+        label: `마감임박 (D-${daysLeft})`,
+        bg: '#fef3c7',
+        color: '#b45309',
+      };
+    return { label: '진행중', bg: '#dcfce7', color: '#15803d' };
+  };
 
   const discountTypeLabel: Record<string, string> = {
     percent: '% 할인',
@@ -168,6 +198,7 @@ export default function DiscountsPage() {
                   '유형',
                   '할인값',
                   '출처',
+                  ...(filter === 'active' ? ['상태'] : []),
                   '유효기간',
                   '등록일',
                   '',
@@ -222,6 +253,28 @@ export default function DiscountsPage() {
                       {sourceLabel[d.sourceType]}
                     </span>
                   </td>
+                  {filter === 'active' &&
+                    (() => {
+                      const badge = getEventStatusBadge(d.validUntil);
+                      return (
+                        <td
+                          style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}
+                        >
+                          <span
+                            style={{
+                              background: badge.bg,
+                              color: badge.color,
+                              padding: '2px 8px',
+                              borderRadius: 99,
+                              fontSize: 11,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {badge.label}
+                          </span>
+                        </td>
+                      );
+                    })()}
                   <td
                     style={{
                       padding: '10px 12px',

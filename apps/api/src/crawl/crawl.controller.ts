@@ -1,6 +1,7 @@
 import {
   ConflictException,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -55,5 +56,17 @@ export class CrawlController {
   @ApiOperation({ summary: '크롤링 이벤트 재처리 (admin)' })
   reprocess(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.crawlService.reprocess(id, user.id);
+  }
+
+  @Delete('failed')
+  @ApiOperation({ summary: '실패 이벤트 전체 삭제 (admin)' })
+  removeAllFailed(@CurrentUser() user: AuthUser) {
+    return this.crawlService.removeAllFailed(user.id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: '크롤링 이벤트 삭제 (admin, failed만)' })
+  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.crawlService.remove(id, user.id);
   }
 }
