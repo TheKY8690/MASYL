@@ -75,6 +75,25 @@ export function DiscountCard({ group, selectedDiscountId, onSelect }: Props) {
             role="button"
           >
             <div className={discountTitle}>{d.title}</div>
+            {(d.validFrom || d.validUntil) && (
+              <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 4 }}>
+                {d.validFrom
+                  ? new Date(d.validFrom).toLocaleDateString('ko-KR', {
+                      month: 'numeric',
+                      day: 'numeric',
+                    })
+                  : ''}
+                {d.validFrom && d.validUntil ? ' ~ ' : ''}
+                {d.validUntil
+                  ? new Date(d.validUntil).toLocaleDateString('ko-KR', {
+                      month: 'numeric',
+                      day: 'numeric',
+                    })
+                  : d.validFrom
+                    ? ''
+                    : '무기한'}
+              </div>
+            )}
             <div className={footer}>
               <span className={valueBadge}>{d.discountValue}</span>
               {d.eventUrl && (

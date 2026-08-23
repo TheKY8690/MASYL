@@ -117,7 +117,16 @@ export default function HomePage() {
                     parseFloat(d.cafeLongitude),
                   ),
                 )
-              : undefined,
+              : d.brandName
+                ? (() => {
+                    const matched = nearbyPlaces.find((p) =>
+                      p.place_name.includes(d.brandName!),
+                    );
+                    return matched?.distance
+                      ? parseInt(matched.distance)
+                      : undefined;
+                  })()
+                : undefined,
           cafeLatitude: d.cafeLatitude,
           cafeLongitude: d.cafeLongitude,
           discounts: [],
@@ -125,8 +134,25 @@ export default function HomePage() {
       }
       map.get(key)!.discounts.push(d);
     }
-    return [...map.values()];
-  }, [filteredDiscounts, userLocation]);
+    return [...map.values()]
+      .map((g) => ({
+        ...g,
+        discounts: [...g.discounts].sort((a, b) => {
+          if (!a.validUntil && !b.validUntil) return 0;
+          if (!a.validUntil) return 1;
+          if (!b.validUntil) return -1;
+          return (
+            new Date(a.validUntil).getTime() - new Date(b.validUntil).getTime()
+          );
+        }),
+      }))
+      .sort((a, b) => {
+        if (a.distance == null && b.distance == null) return 0;
+        if (a.distance == null) return 1;
+        if (b.distance == null) return -1;
+        return a.distance - b.distance;
+      });
+  }, [filteredDiscounts, userLocation, nearbyPlaces]);
 
   const selectedDiscount =
     filteredDiscounts.find((d) => d.id === selectedDiscountId) ?? null;
