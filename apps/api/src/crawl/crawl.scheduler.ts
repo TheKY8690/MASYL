@@ -17,4 +17,12 @@ export class CrawlScheduler {
       `Daily crawl finished: processed=${result.processed} failed=${result.failed}`,
     );
   }
+
+  // UTC 15:00 = KST 00:00
+  @Cron('0 15 * * *')
+  async runDailyExpire() {
+    this.logger.log('Daily expire started');
+    const count = await this.crawlService.expireOldDiscounts();
+    this.logger.log(`Daily expire finished: ${count} discounts expired`);
+  }
 }

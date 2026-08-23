@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from '../drizzle/drizzle.module';
-import { and, eq, getTableColumns, isNotNull } from 'drizzle-orm';
+import { and, eq, getTableColumns, inArray, isNotNull, lt } from 'drizzle-orm';
 import { WebsiteScraper } from './scrapers/website.scraper';
 import { DiscountExtractor } from './llm/discount-extractor';
 import { CrawledEventQueryDto } from './dto/crawled-event-query.dto';
@@ -176,6 +176,19 @@ export class CrawlService {
     return { deleted: deleted.length };
   }
 
+  async expireOldDiscounts(): Promise<number> {
+    const result = await this.db
+      .delete(schema.discounts)
+      .where(
+        and(
+          isNotNull(schema.discounts.validUntil),
+          lt(schema.discounts.validUntil, new Date()),
+        ),
+      )
+      .returning({ id: schema.discounts.id });
+    return result.length;
+  }
+
   async reprocess(id: string, adminId: string) {
     const event = await this.findOne(id, adminId);
     await this.processEvent(event, '');
@@ -205,10 +218,43 @@ export class CrawlService {
         return;
       }
 
+      const existing = await this.db
+        .select({ title: schema.discounts.title })
+        .from(schema.discounts)
+        .where(
+          and(
+            eq(schema.discounts.brandId, event.brandId),
+            inArray(schema.discounts.status, ['active', 'pending_review']),
+          ),
+        );
+
+      const existingTitles = new Set(
+        existing.map((d) => d.title.toLowerCase().trim()),
+      );
+
+      const newDiscounts = extracted.filter(
+        (e) => !existingTitles.has(e.title.toLowerCase().trim()),
+      );
+
+      if (newDiscounts.length === 0) {
+        this.logger.log(
+          `No new discounts for brand ${event.brandId} (all duplicates)`,
+        );
+        await this.db
+          .update(schema.crawledEvents)
+          .set({
+            status: 'processed',
+            processedAt: new Date(),
+            summary: '신규 할인 없음 (중복)',
+          })
+          .where(eq(schema.crawledEvents.id, event.id));
+        return;
+      }
+
       const inserted = await this.db
         .insert(schema.discounts)
         .values(
-          extracted.map((e) => ({
+          newDiscounts.map((e) => ({
             brandId: event.brandId,
             title: e.title,
             description: e.description,
@@ -229,7 +275,7 @@ export class CrawlService {
         .set({
           status: 'processed',
           processedAt: new Date(),
-          summary: extracted.map((e) => e.title).join(' / '),
+          summary: newDiscounts.map((e) => e.title).join(' / '),
           discountId: inserted[0]?.id ?? null,
         })
         .where(eq(schema.crawledEvents.id, event.id));
