@@ -70,7 +70,7 @@ export function MapPanel({ selectedCafe, onSelectCafe }: MapPanelProps) {
   const mapRef = useKakaoMap(containerRef, {
     centerLat: userLocation?.lat ?? 37.5172,
     centerLng: userLocation?.lng ?? 127.0473,
-    level: 4,
+    level: 3,
     markers,
     ...(userLocation ? { userLocation } : {}),
   });

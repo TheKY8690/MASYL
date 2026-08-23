@@ -1,17 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useKakaoMap, type MapMarkerData } from '../../hooks/useKakaoMap';
+import { useKakaoPlaces } from '../../hooks/useKakaoPlaces';
 import { container, mapContainer, overlay, overlayHint } from './MiniMap.css';
 
 const CENTER_LAT = 37.5172;
 const CENTER_LNG = 127.0473;
-
-const MINI_MARKERS: Omit<MapMarkerData, 'onClick' | 'selected'>[] = [
-  { cafeId: '1', lat: 37.5185, lng: 127.0458, price: 1000, hot: true },
-  { cafeId: '2', lat: 37.516, lng: 127.049, price: 1200 },
-  { cafeId: '3', lat: 37.5155, lng: 127.0445, price: 900 },
-];
 
 interface MiniMapProps {
   onSelectCafe?: (cafeId: string) => void;
@@ -36,15 +31,27 @@ export function MiniMap({ onSelectCafe }: MiniMapProps) {
     );
   }, []);
 
-  const markers: MapMarkerData[] = MINI_MARKERS.map((m) => ({
-    ...m,
-    ...(onSelectCafe ? { onClick: onSelectCafe } : {}),
-  }));
+  const places = useKakaoPlaces({
+    lat: userLocation?.lat,
+    lng: userLocation?.lng,
+    radius: 500,
+  });
+
+  const markers = useMemo<MapMarkerData[]>(
+    () =>
+      places.map((p) => ({
+        cafeId: p.id,
+        lat: parseFloat(p.y),
+        lng: parseFloat(p.x),
+        name: p.place_name,
+      })),
+    [places],
+  );
 
   useKakaoMap(containerRef, {
     centerLat: userLocation?.lat ?? CENTER_LAT,
     centerLng: userLocation?.lng ?? CENTER_LNG,
-    level: 5,
+    level: 4,
     draggable: false,
     scrollwheel: false,
     markers,

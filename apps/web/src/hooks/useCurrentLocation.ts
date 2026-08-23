@@ -3,15 +3,13 @@
 import { useEffect, useState } from 'react';
 
 export function useCurrentLocation() {
-  const [locationName, setLocationName] = useState<string>(() => {
-    if (typeof navigator !== 'undefined' && !navigator.geolocation) {
-      return '위치 정보 없음';
-    }
-    return '위치 확인 중...';
-  });
+  const [locationName, setLocationName] = useState<string>('위치 확인 중...');
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setLocationName('위치 정보 없음');
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {

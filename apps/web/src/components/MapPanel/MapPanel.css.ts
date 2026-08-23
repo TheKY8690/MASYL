@@ -36,6 +36,11 @@ export const locationBtn = style({
       transform: 'scale(0.95)',
     },
   },
+  '@media': {
+    'screen and (max-width: 767px)': {
+      bottom: '76px', // 60px BottomNav + 16px gap
+    },
+  },
 });
 
 export const selectedPanel = style({
@@ -52,6 +57,11 @@ export const selectedPanel = style({
   alignItems: 'center',
   gap: vars.space.md,
   zIndex: 20,
+  '@media': {
+    'screen and (max-width: 767px)': {
+      bottom: '60px',
+    },
+  },
 });
 
 export const selectedName = style({
