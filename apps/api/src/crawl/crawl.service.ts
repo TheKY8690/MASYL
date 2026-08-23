@@ -193,7 +193,7 @@ export class CrawlService {
         event.rawContent,
       );
 
-      if (!extracted) {
+      if (extracted.length === 0) {
         await this.db
           .update(schema.crawledEvents)
           .set({
@@ -205,34 +205,32 @@ export class CrawlService {
         return;
       }
 
-      const [discount] = await this.db
+      const inserted = await this.db
         .insert(schema.discounts)
-        .values({
-          brandId: event.brandId,
-          title: extracted.title,
-          description: extracted.description,
-          discountType: extracted.discountType,
-          discountValue: extracted.discountValue,
-          eventUrl: extracted.eventUrl ?? null,
-          sourceType: 'auto_crawl',
-          status: 'pending_review',
-          validFrom: extracted.validFrom ? new Date(extracted.validFrom) : null,
-          validUntil: extracted.validUntil
-            ? new Date(extracted.validUntil)
-            : null,
-          crawledEventId: event.id,
-        })
+        .values(
+          extracted.map((e) => ({
+            brandId: event.brandId,
+            title: e.title,
+            description: e.description,
+            discountType: e.discountType,
+            discountValue: e.discountValue,
+            eventUrl: e.eventUrl ?? null,
+            sourceType: 'auto_crawl' as const,
+            status: 'active' as const,
+            validFrom: e.validFrom ? new Date(e.validFrom) : null,
+            validUntil: e.validUntil ? new Date(e.validUntil) : null,
+            crawledEventId: event.id,
+          })),
+        )
         .returning();
-
-      if (!discount) throw new Error('Failed to insert discount');
 
       await this.db
         .update(schema.crawledEvents)
         .set({
           status: 'processed',
           processedAt: new Date(),
-          summary: extracted.description,
-          discountId: discount.id,
+          summary: extracted.map((e) => e.title).join(' / '),
+          discountId: inserted[0]?.id ?? null,
         })
         .where(eq(schema.crawledEvents.id, event.id));
     } catch (e) {

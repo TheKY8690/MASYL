@@ -14,6 +14,7 @@ import {
   getTableColumns,
   gt,
   inArray,
+  isNotNull,
   isNull,
   lte,
   or,
@@ -179,7 +180,8 @@ export class DiscountService {
         ),
       );
 
-    if (nearbyCafes.length === 0) return [];
+    // 브랜드 할인은 위치 무관 반환 (cafes 테이블은 더미 HQ 좌표)
+    // nearbyCafes가 없어도 brandId 기반 할인은 조회 계속
 
     const nearbyCafeIds = nearbyCafes.map((c) => c.id);
     const nearbyBrandIds = [
@@ -206,10 +208,12 @@ export class DiscountService {
             gt(schema.discounts.validUntil, now),
           ),
           or(
-            nearbyBrandIds.length > 0
-              ? inArray(schema.discounts.brandId, nearbyBrandIds)
+            // 브랜드 할인: 위치 무관 (체인 전체 적용, cafes 테이블은 더미 좌표)
+            isNotNull(schema.discounts.brandId),
+            // 지점별 할인: nearby cafe 필요
+            nearbyCafeIds.length > 0
+              ? inArray(schema.discounts.cafeId, nearbyCafeIds)
               : sql`false`,
-            inArray(schema.discounts.cafeId, nearbyCafeIds),
           ),
         ),
       )

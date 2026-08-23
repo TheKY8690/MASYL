@@ -9,7 +9,7 @@ export interface ExtractedDiscount {
   discountValue: string;
   validFrom?: string;
   validUntil?: string;
-  eventUrl?: string; // 이벤트 원본 페이지 URL (서브페이지 URL 마커에서 추출)
+  eventUrl?: string;
 }
 
 @Injectable()
@@ -27,7 +27,7 @@ export class DiscountExtractor {
     brandName: string,
     sourceUrl: string,
     rawContent: string,
-  ): Promise<ExtractedDiscount | null> {
+  ): Promise<ExtractedDiscount[]> {
     const today = new Date().toISOString().slice(0, 10);
 
     const prompt = `당신은 한국 커피 체인의 이벤트/프로모션 페이지에서 고객에게 혜택을 주는 정보를 추출하는 AI입니다.
@@ -54,61 +54,69 @@ URL: ${sourceUrl}
 내용:
 ${rawContent}
 
-여러 혜택이 있으면 오늘 기준 가장 임박한(종료일이 가까운) 1건만 선택하세요.
-내용에 [https://...] 형태의 URL 마커가 있으면, 선택한 이벤트가 수집된 서브페이지 URL을 eventUrl로 추출하세요.
-JSON으로만 응답 (배열 금지, 단일 객체). 현재 유효한 혜택이 없으면 null.
-{
-  "title": "이벤트/혜택명 (최대 100자)",
-  "description": "혜택 상세 설명 (조건, 대상 메뉴, 적용 방법 포함)",
-  "discountType": "percent | amount | free_item | coupon | other",
-  "discountValue": "예: 30% 또는 1000원 또는 아이스아메리카노 1잔",
-  "validFrom": "YYYY-MM-DD 또는 null",
-  "validUntil": "YYYY-MM-DD 또는 null",
-  "eventUrl": "이벤트 원본 페이지 URL 또는 null"
-}`;
+현재 진행 중인 모든 혜택을 JSON 배열로 반환하세요. 유효한 혜택이 없으면 빈 배열 [].
+내용에 [https://...] 형태의 URL 마커가 있으면, 해당 이벤트가 수집된 서브페이지 URL을 eventUrl로 추출하세요.
+JSON 배열로만 응답. 각 혜택은 아래 형식의 객체:
+[
+  {
+    "title": "이벤트/혜택명 (최대 100자)",
+    "description": "혜택 상세 설명 (조건, 대상 메뉴, 적용 방법 포함)",
+    "discountType": "percent | amount | free_item | coupon | other",
+    "discountValue": "예: 30% 또는 1000원 또는 아이스아메리카노 1잔",
+    "validFrom": "YYYY-MM-DD 또는 null",
+    "validUntil": "YYYY-MM-DD 또는 null",
+    "eventUrl": "이벤트 원본 페이지 URL 또는 null"
+  }
+]`;
 
     const model = this.genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
 
-    if (!text || text === 'null') return null;
+    if (!text || text === '[]') return [];
 
-    // JSON 블록 추출 (마크다운 코드펜스 대응)
+    // JSON 배열 블록 추출 (마크다운 코드펜스 대응)
     const jsonMatch =
-      text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\{[\s\S]*\})/);
+      text.match(/```(?:json)?\s*([\s\S]*?)```/) ?? text.match(/(\[[\s\S]*\])/);
     const raw = jsonMatch?.[1] ?? text;
 
-    let parsed: ExtractedDiscount | null;
+    let parsed: unknown;
     try {
-      parsed = JSON.parse(raw) as ExtractedDiscount | null;
+      parsed = JSON.parse(raw);
     } catch {
       this.logger.warn(
         `Failed to parse JSON for ${brandName}: ${raw.slice(0, 100)}`,
       );
-      return null;
+      return [];
     }
-    if (!parsed || typeof parsed !== 'object') return null;
-    if (!parsed.title || parsed.title === 'null') return null;
-    if (!parsed.discountType || !parsed.discountValue) return null;
 
-    // 날짜 이중 검증 — LLM이 만료된 이벤트를 잘못 추출한 경우 방어
+    if (!Array.isArray(parsed)) return [];
+
     const now = new Date();
-    if (parsed.validUntil && new Date(parsed.validUntil) < now) {
-      this.logger.warn(
-        `Skipping expired discount for ${brandName}: "${parsed.title}" (until ${parsed.validUntil})`,
-      );
-      return null;
-    }
-    if (parsed.validFrom && new Date(parsed.validFrom) > now) {
-      this.logger.warn(
-        `Skipping future discount for ${brandName}: "${parsed.title}" (from ${parsed.validFrom})`,
-      );
-      return null;
+    const valid: ExtractedDiscount[] = [];
+
+    for (const item of parsed as ExtractedDiscount[]) {
+      if (!item || typeof item !== 'object') continue;
+      if (!item.title || item.title === 'null') continue;
+      if (!item.discountType || !item.discountValue) continue;
+
+      if (item.validUntil && new Date(item.validUntil) < now) {
+        this.logger.warn(
+          `Skipping expired discount for ${brandName}: "${item.title}" (until ${item.validUntil})`,
+        );
+        continue;
+      }
+      if (item.validFrom && new Date(item.validFrom) > now) {
+        this.logger.warn(
+          `Skipping future discount for ${brandName}: "${item.title}" (from ${item.validFrom})`,
+        );
+        continue;
+      }
+
+      valid.push(item);
     }
 
-    this.logger.log(
-      `Extracted discount for ${brandName}: "${parsed.title}" (${parsed.discountType})`,
-    );
-    return parsed;
+    this.logger.log(`Extracted ${valid.length} discount(s) for ${brandName}`);
+    return valid;
   }
 }
