@@ -52,7 +52,7 @@ async function main() {
       `UPDATE crawled_events SET discount_id = NULL WHERE discount_id IN (${placeholders})`,
       deleteIds,
     );
-    const result = await pool.query(
+    await pool.query(
       `DELETE FROM discounts WHERE id IN (${placeholders})`,
       deleteIds,
     );

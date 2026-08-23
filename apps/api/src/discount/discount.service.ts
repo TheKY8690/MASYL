@@ -184,9 +184,6 @@ export class DiscountService {
     // nearbyCafes가 없어도 brandId 기반 할인은 조회 계속
 
     const nearbyCafeIds = nearbyCafes.map((c) => c.id);
-    const nearbyBrandIds = [
-      ...new Set(nearbyCafes.map((c) => c.brandId).filter(Boolean) as string[]),
-    ];
 
     // Step 2: 해당 카페/브랜드의 active 할인 조회
     const discountRows = await this.db

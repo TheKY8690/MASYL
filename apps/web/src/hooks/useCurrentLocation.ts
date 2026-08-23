@@ -7,7 +7,7 @@ export function useCurrentLocation() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setLocationName('위치 정보 없음');
+      setTimeout(() => setLocationName('위치 정보 없음'), 0);
       return;
     }
 
