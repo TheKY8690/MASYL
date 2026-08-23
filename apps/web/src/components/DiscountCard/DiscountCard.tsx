@@ -33,17 +33,22 @@ interface Props {
 }
 
 export function DiscountCard({ group, selectedDiscountId, onSelect }: Props) {
+  const isSingle = group.discounts.length === 1;
   const [isOpen, setIsOpen] = useState(false);
   const isGroupSelected = group.discounts.some(
     (d) => d.id === selectedDiscountId,
   );
-  const listVisible = isOpen || isGroupSelected;
+  const listVisible = isSingle || isOpen || isGroupSelected;
 
   return (
     <div className={`${card}${isGroupSelected ? ` ${cardSelected}` : ''}`}>
       <div
         className={header}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() =>
+          isSingle
+            ? onSelect(group.discounts[0].id)
+            : setIsOpen((prev) => !prev)
+        }
         role="button"
         style={{ cursor: 'pointer' }}
       >
@@ -56,7 +61,9 @@ export function DiscountCard({ group, selectedDiscountId, onSelect }: Props) {
                 : `${(group.distance / 1000).toFixed(1)}km`}
             </span>
           )}
-          <span className={chevron}>{listVisible ? '▲' : '▼'}</span>
+          {!isSingle && (
+            <span className={chevron}>{listVisible ? '▲' : '▼'}</span>
+          )}
         </div>
       </div>
       {listVisible &&

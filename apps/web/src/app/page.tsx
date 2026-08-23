@@ -131,6 +131,12 @@ export default function HomePage() {
   const selectedDiscount =
     filteredDiscounts.find((d) => d.id === selectedDiscountId) ?? null;
 
+  const selectedGroup = selectedDiscountId
+    ? (discountGroups.find((g) =>
+        g.discounts.some((d) => d.id === selectedDiscountId),
+      ) ?? null)
+    : null;
+
   const discountMarker: DiscountMapMarker | null = (() => {
     if (!selectedDiscount) return null;
 
@@ -164,13 +170,21 @@ export default function HomePage() {
     return null;
   })();
 
+  const handleSelectCafe = (placeId: string) => {
+    const place = nearbyPlaces.find((p) => p.id === placeId);
+    if (!place) return;
+    const matched = filteredDiscounts.find(
+      (d) => d.brandName && place.place_name.includes(d.brandName),
+    );
+    if (matched) setSelectedDiscountId(matched.id);
+  };
+
   const handleSelectDiscount = (id: string) => {
     if (selectedDiscountId === id) {
       setSelectedDiscountId(null);
       return;
     }
     setSelectedDiscountId(id);
-    if (activeTab === 'home') setActiveTab('map');
   };
 
   const discountList = (
@@ -219,9 +233,12 @@ export default function HomePage() {
 
         <MapPanel
           selectedCafe={null}
-          onSelectCafe={() => {}}
+          onSelectCafe={handleSelectCafe}
           discountMarker={discountMarker}
           onClearDiscount={() => setSelectedDiscountId(null)}
+          selectedGroup={selectedGroup}
+          selectedDiscountId={selectedDiscountId}
+          onSelectDiscount={handleSelectDiscount}
         />
       </main>
 
@@ -231,6 +248,7 @@ export default function HomePage() {
           <LocationBar location={locationName} />
           <SearchStatusPill message="아이스 아메리카노 특가 찾는 중" />
           <MiniMap
+            discountMarker={discountMarker}
             onSelectCafe={() => {
               setActiveTab('map');
             }}
@@ -253,9 +271,12 @@ export default function HomePage() {
         <div className={mobileMapView}>
           <MapPanel
             selectedCafe={null}
-            onSelectCafe={() => {}}
+            onSelectCafe={handleSelectCafe}
             discountMarker={discountMarker}
             onClearDiscount={() => setSelectedDiscountId(null)}
+            selectedGroup={selectedGroup}
+            selectedDiscountId={selectedDiscountId}
+            onSelectDiscount={handleSelectDiscount}
           />
         </div>
       )}

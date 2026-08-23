@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CafeCardData } from '../CafeCard/CafeCard';
 import { useKakaoMap, type MapMarkerData } from '../../hooks/useKakaoMap';
 import { useKakaoPlaces, type KakaoPlace } from '../../hooks/useKakaoPlaces';
+import type { DiscountGroup } from '../DiscountCard/DiscountCard';
 import {
   panel,
   mapContainer,
@@ -28,6 +29,9 @@ interface MapPanelProps {
   onSelectCafe?: (cafeId: string) => void;
   discountMarker?: DiscountMapMarker | null;
   onClearDiscount?: () => void;
+  selectedGroup?: DiscountGroup | null;
+  selectedDiscountId?: string | null;
+  onSelectDiscount?: (id: string) => void;
 }
 
 export function MapPanel({
@@ -35,6 +39,9 @@ export function MapPanel({
   onSelectCafe,
   discountMarker,
   onClearDiscount,
+  selectedGroup,
+  selectedDiscountId,
+  onSelectDiscount,
 }: MapPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -190,8 +197,88 @@ export function MapPanel({
         </div>
       )}
 
-      {/* 할인 이벤트 선택 패널 */}
-      {!activePanel && discountMarker && (
+      {/* 할인 이벤트 선택 패널 — 그룹 전체 표시 */}
+      {!activePanel && discountMarker && selectedGroup && (
+        <div
+          className={selectedPanel}
+          style={{ flexDirection: 'column', alignItems: 'stretch', gap: 0 }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: 15 }}>
+              {selectedGroup.displayName}
+            </span>
+            <button
+              className={catchBtn}
+              onClick={onClearDiscount}
+              style={{ background: '#e5e7eb', color: '#374151' }}
+            >
+              닫기
+            </button>
+          </div>
+          <div style={{ overflowY: 'auto', maxHeight: '192px' }}>
+            {selectedGroup.discounts.map((d) => (
+              <div
+                key={d.id}
+                onClick={() => onSelectDiscount?.(d.id)}
+                style={{
+                  padding: '8px 0',
+                  borderTop: '1px solid #e5e7eb',
+                  cursor: 'pointer',
+                  background:
+                    d.id === selectedDiscountId ? '#f3f4f6' : 'transparent',
+                }}
+              >
+                <div style={{ fontSize: 13, marginBottom: 4 }}>{d.title}</div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#fff',
+                      background: '#F39C12',
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                    }}
+                  >
+                    {d.discountValue}
+                  </span>
+                  {d.eventUrl && (
+                    <a
+                      href={d.eventUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: 12,
+                        color: '#3B82F6',
+                        textDecoration: 'none',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      자세히 보기 →
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* fallback: selectedGroup 없는 경우 단건 표시 */}
+      {!activePanel && discountMarker && !selectedGroup && (
         <div className={selectedPanel}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className={selectedName}>{discountMarker.title}</div>
