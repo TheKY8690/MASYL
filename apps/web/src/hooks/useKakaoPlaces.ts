@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react';
 export type KakaoPlace = kakao.maps.services.PlaceSearchResult;
 
 interface UseKakaoPlacesOptions {
-  lat?: number;
-  lng?: number;
+  lat?: number | undefined;
+  lng?: number | undefined;
   radius?: number;
 }
 

@@ -1,7 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { getDiscountsNearby } from '../services/discount.service';
 
-export function useNearbyDiscounts(query: { lat?: number; lng?: number }) {
+export function useNearbyDiscounts(query: {
+  lat?: number | undefined;
+  lng?: number | undefined;
+}) {
   return useQuery({
     queryKey: ['discounts', 'nearby', query],
     queryFn: () => getDiscountsNearby({ lat: query.lat!, lng: query.lng! }),

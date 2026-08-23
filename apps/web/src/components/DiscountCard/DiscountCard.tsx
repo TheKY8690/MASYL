@@ -20,7 +20,7 @@ import {
 export interface DiscountGroup {
   key: string;
   displayName: string;
-  distance?: number;
+  distance?: number | undefined;
   cafeLatitude?: string | null;
   cafeLongitude?: string | null;
   discounts: NearbyDiscountItem[];
@@ -46,7 +46,7 @@ export function DiscountCard({ group, selectedDiscountId, onSelect }: Props) {
         className={header}
         onClick={() =>
           isSingle
-            ? onSelect(group.discounts[0].id)
+            ? onSelect(group.discounts[0]!.id)
             : setIsOpen((prev) => !prev)
         }
         role="button"
