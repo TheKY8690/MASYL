@@ -31,3 +31,20 @@ export function getDiscountsNearby(query: {
   });
   return apiFetch<NearbyDiscountItem[]>(`/discounts/nearby?${params}`);
 }
+
+export function createDiscount(
+  token: string,
+  body: {
+    cafeId: string;
+    title: string;
+    discountType: 'percent' | 'amount' | 'free_item' | 'other';
+    discountValue: string;
+    description?: string;
+  },
+) {
+  return apiFetch<unknown>('/discounts', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(body),
+  });
+}

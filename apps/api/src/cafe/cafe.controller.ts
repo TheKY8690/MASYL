@@ -39,6 +39,14 @@ export class CafeController {
     return this.cafeService.findAll();
   }
 
+  @Get('mine')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내 카페 목록' })
+  findMine(@CurrentUser() user: AuthUser) {
+    return this.cafeService.findMine(user.id);
+  }
+
   @Get(':id')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()

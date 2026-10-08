@@ -28,6 +28,7 @@ export const logo = style({
   color: vars.color.primary,
   letterSpacing: '-0.5px',
   flexShrink: 0,
+  textDecoration: 'none',
 });
 
 export const logoAccent = style({
@@ -88,6 +89,7 @@ export const locationChip = style({
   fontSize: '13px',
   fontWeight: '500',
   color: vars.color.primary,
+  textDecoration: 'none',
   border: `1px solid ${vars.color.border}`,
   transition: 'all 150ms ease',
   selectors: {
@@ -117,6 +119,7 @@ export const profileBtn = style({
   fontSize: '14px',
   fontWeight: '600',
   flexShrink: 0,
+  textDecoration: 'none',
   transition: 'opacity 150ms ease',
   selectors: {
     '&:hover': {

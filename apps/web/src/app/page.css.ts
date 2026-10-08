@@ -105,3 +105,25 @@ export const emptyState = style({
   fontSize: '14px',
   color: vars.color.muted,
 });
+
+export const desktopPanel = style({
+  display: 'flex',
+  minHeight: 'calc(100vh - 64px)',
+  backgroundColor: vars.color.bg,
+  '@media': {
+    'screen and (max-width: 767px)': {
+      display: 'none',
+    },
+  },
+});
+
+export const mobilePanelView = style({
+  display: 'none',
+  '@media': {
+    'screen and (max-width: 767px)': {
+      display: 'block',
+      minHeight: 'calc(100vh - 56px)',
+      backgroundColor: vars.color.bg,
+    },
+  },
+});

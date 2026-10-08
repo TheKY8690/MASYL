@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentLocation } from '../../hooks/useCurrentLocation';
-import { Toast } from '../Toast/Toast';
+import { useSession } from '../../hooks/useSession';
+import { parseAppTab, tabHref, type AppTab } from '../../lib/tabs';
 import {
   gnb,
   logo,
@@ -16,52 +18,60 @@ import {
   profileBtn,
 } from './GNB.css';
 
-const NAV_ITEMS = [
-  { label: '홈', active: true },
-  { label: '지도', active: false },
-  { label: '혜택', active: false },
-  { label: '마이', active: false },
+const NAV_ITEMS: { id: AppTab; label: string }[] = [
+  { id: 'home', label: '홈' },
+  { id: 'map', label: '지도' },
+  { id: 'benefits', label: '혜택' },
+  { id: 'my', label: '마이' },
 ];
 
 export function GNB() {
-  const [showToast, setShowToast] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const locationName = useCurrentLocation();
-
-  const handleComingSoon = () => {
-    if (showToast) return;
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 2000);
-  };
+  const { session, ready } = useSession();
+  const activeTab =
+    pathname === '/' ? parseAppTab(searchParams.get('tab')) : null;
 
   return (
-    <>
-      <header className={gnb}>
-        <span className={logo}>
-          마<span className={logoAccent}>실</span>
-        </span>
+    <header className={gnb}>
+      <Link href="/" className={logo}>
+        마<span className={logoAccent}>실</span>
+      </Link>
 
-        <nav className={nav}>
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              className={`${navItem}${item.active ? ` ${navItemActive}` : ''}`}
-              onClick={item.active ? undefined : handleComingSoon}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className={right}>
-          <button className={locationChip}>
-            <span className={locationDot} />
-            {locationName}
+      <nav className={nav}>
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`${navItem}${activeTab === item.id ? ` ${navItemActive}` : ''}`}
+            onClick={() => router.push(tabHref(item.id))}
+          >
+            {item.label}
           </button>
-          <button className={profileBtn}>Z</button>
-        </div>
-      </header>
+        ))}
+      </nav>
 
-      {showToast && <Toast message="추후 개발 예정입니다 🚧" />}
-    </>
+      <div className={right}>
+        <button type="button" className={locationChip}>
+          <span className={locationDot} />
+          {locationName}
+        </button>
+        {ready && session ? (
+          <button
+            type="button"
+            className={profileBtn}
+            onClick={() => router.push(tabHref('my'))}
+          >
+            {(session.user.email ?? '나').slice(0, 1).toUpperCase()}
+          </button>
+        ) : (
+          <Link href="/login" className={locationChip}>
+            로그인
+          </Link>
+        )}
+      </div>
+    </header>
   );
 }

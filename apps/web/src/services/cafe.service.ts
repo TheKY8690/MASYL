@@ -8,6 +8,16 @@ export interface NearbyQuery {
   offset?: number;
 }
 
+export interface CafeRow {
+  id: string;
+  ownerId: string | null;
+  name: string;
+  address: string;
+  latitude: string | number;
+  longitude: string | number;
+  phone: string | null;
+}
+
 export async function getCafesNearby(query: NearbyQuery, token?: string) {
   const params = new URLSearchParams({
     lat: String(query.lat),
@@ -18,5 +28,26 @@ export async function getCafesNearby(query: NearbyQuery, token?: string) {
   });
   return apiFetch<unknown[]>(`/cafes/nearby?${params}`, {
     ...(token !== undefined ? { token } : {}),
+  });
+}
+
+export function getMyCafes(token: string) {
+  return apiFetch<CafeRow[]>('/cafes/mine', { token });
+}
+
+export function createCafe(
+  token: string,
+  body: {
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    phone?: string;
+  },
+) {
+  return apiFetch<CafeRow>('/cafes', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(body),
   });
 }

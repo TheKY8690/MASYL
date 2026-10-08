@@ -93,6 +93,7 @@ export class ReportService {
         discountType: 'other',
         discountValue: '-',
         sourceType: 'user_report',
+        status: 'active',
         createdBy: report.reporterId,
         verifiedBy: adminId,
         verifiedAt: new Date(),

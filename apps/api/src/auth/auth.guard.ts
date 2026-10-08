@@ -15,7 +15,8 @@ export class AuthGuard implements CanActivate {
   constructor(private configService: ConfigService) {
     this.supabase = createClient(
       configService.getOrThrow('SUPABASE_URL'),
-      configService.getOrThrow('SUPABASE_SERVICE_ROLE_KEY'),
+      configService.get('SUPABASE_SERVICE_ROLE_KEY') ??
+        configService.getOrThrow('SUPABASE_ANON_KEY'),
     );
   }
 

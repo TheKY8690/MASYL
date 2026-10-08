@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import type { AuthUser } from '@masyl/types';
@@ -16,5 +16,13 @@ export class AuthController {
   @ApiBearerAuth()
   async getMe(@CurrentUser() user: AuthUser) {
     return this.authService.upsertUser(user);
+  }
+
+  @Post('seller')
+  @UseGuards(AuthGuard)
+  @ApiBearerAuth()
+  async becomeSeller(@CurrentUser() user: AuthUser) {
+    await this.authService.upsertUser(user);
+    return this.authService.becomeSeller(user.id);
   }
 }

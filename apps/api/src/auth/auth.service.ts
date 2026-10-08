@@ -1,7 +1,13 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { AuthUser } from '@masyl/types';
+import { isSupportedProvider, nextRoleAfterBecomeSeller } from './auth.util';
 import { DRIZZLE } from '../drizzle/drizzle.module';
 import * as schema from '../drizzle/schema';
 
@@ -16,16 +22,13 @@ export class AuthService {
     }
 
     const rawProvider = supabaseUser.app_metadata?.provider;
-    const validProvider = ['google', 'kakao'] as const;
-    if (
-      !validProvider.includes(rawProvider as (typeof validProvider)[number])
-    ) {
+    if (!isSupportedProvider(rawProvider)) {
       throw new BadRequestException(
         `지원하지 않는 로그인 방식: ${rawProvider}`,
       );
     }
 
-    const provider = rawProvider as 'google' | 'kakao';
+    const provider = rawProvider;
 
     const displayName =
       supabaseUser.user_metadata?.full_name ??
@@ -58,5 +61,24 @@ export class AuthService {
       .returning();
 
     return profile;
+  }
+
+  async becomeSeller(userId: string) {
+    const [existing] = await this.db
+      .select()
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, userId))
+      .limit(1);
+    if (!existing) {
+      throw new NotFoundException('프로필이 없어요. 먼저 로그인하세요');
+    }
+    const role = nextRoleAfterBecomeSeller(existing.role);
+    if (existing.role === role) return existing;
+    const [updated] = await this.db
+      .update(schema.profiles)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(schema.profiles.id, userId))
+      .returning();
+    return updated;
   }
 }

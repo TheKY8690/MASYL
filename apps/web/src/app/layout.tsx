@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import Script from 'next/script';
 import Providers from './providers';
 import { GNB } from '../components/GNB/GNB';
@@ -32,7 +32,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
         <Providers>
           <SplashScreen />
-          <GNB />
+          <Suspense fallback={null}>
+            <GNB />
+          </Suspense>
           {children}
         </Providers>
       </body>

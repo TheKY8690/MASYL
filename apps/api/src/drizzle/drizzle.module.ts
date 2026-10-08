@@ -13,9 +13,15 @@ export const DRIZZLE = Symbol('DRIZZLE');
       provide: DRIZZLE,
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const connectionString =
-          configService.getOrThrow<string>('DATABASE_URL');
-        const pool = new Pool({ connectionString });
+        const connectionString = configService
+          .getOrThrow<string>('DATABASE_URL')
+          .replace(/[?&]sslmode=[^&]*/g, '')
+          .replace(/\?$/, '');
+        const pool = new Pool({
+          connectionString,
+          ssl: { rejectUnauthorized: false },
+          options: '-c search_path=public',
+        });
         return drizzle(pool, { schema });
       },
     },

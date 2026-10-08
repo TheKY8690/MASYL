@@ -23,6 +23,7 @@ import {
 import { NearbyDiscountQueryDto } from './dto/nearby-discount-query.dto';
 import { CreateDiscountDto } from './dto/create-discount.dto';
 import { UpdateDiscountDto } from './dto/update-discount.dto';
+import { canSellerRegisterDiscount } from '../auth/auth.util';
 
 @Injectable()
 export class DiscountService {
@@ -252,6 +253,22 @@ export class DiscountService {
         : profile?.role === 'seller'
           ? 'seller_registered'
           : 'user_report';
+    if (profile?.role === 'seller') {
+      if (!dto.cafeId) {
+        throw new BadRequestException('판매자는 카페를 지정해야 해요');
+      }
+      const [cafe] = await this.db
+        .select({ ownerId: schema.cafes.ownerId })
+        .from(schema.cafes)
+        .where(eq(schema.cafes.id, dto.cafeId))
+        .limit(1);
+      if (!cafe) {
+        throw new NotFoundException(`Cafe ${dto.cafeId} not found`);
+      }
+      if (!canSellerRegisterDiscount(profile.role, cafe.ownerId, userId)) {
+        throw new ForbiddenException('본인 카페 할인만 등록할 수 있어요');
+      }
+    }
     this.assertDateRange(dto.validFrom, dto.validUntil);
     const [discount] = await this.db
       .insert(schema.discounts)

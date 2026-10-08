@@ -11,6 +11,7 @@ import * as schema from '../drizzle/schema';
 import type { CreateCafeDto } from './dto/create-cafe.dto';
 import type { UpdateCafeDto } from './dto/update-cafe.dto';
 import type { NearbyQueryDto } from './dto/nearby-query.dto';
+import { canRegisterCafe } from '../auth/auth.util';
 
 @Injectable()
 export class CafeService {
@@ -57,11 +58,29 @@ export class CafeService {
       );
   }
 
+  findMine(ownerId: string) {
+    return this.db
+      .select()
+      .from(schema.cafes)
+      .where(eq(schema.cafes.ownerId, ownerId));
+  }
+
   async create(dto: CreateCafeDto, ownerId?: string) {
+    if (!ownerId) {
+      throw new ForbiddenException('로그인이 필요해요');
+    }
+    const [profile] = await this.db
+      .select({ role: schema.profiles.role })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.id, ownerId))
+      .limit(1);
+    if (!canRegisterCafe(profile?.role)) {
+      throw new ForbiddenException('판매자만 카페를 등록할 수 있어요');
+    }
     const [cafe] = await this.db
       .insert(schema.cafes)
       .values({
-        ownerId: ownerId ?? null,
+        ownerId,
         name: dto.name,
         address: dto.address,
         latitude: String(dto.latitude),

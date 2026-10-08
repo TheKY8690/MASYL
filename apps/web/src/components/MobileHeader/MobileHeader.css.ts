@@ -55,4 +55,5 @@ export const profileBtn = style({
   fontSize: '13px',
   fontWeight: '700',
   flexShrink: 0,
+  textDecoration: 'none',
 });

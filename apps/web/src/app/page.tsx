@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentLocation } from '../hooks/useCurrentLocation';
 import { useNearbyDiscounts } from '../hooks/useNearbyDiscounts';
 import { useKakaoPlaces } from '../hooks/useKakaoPlaces';
@@ -10,7 +11,10 @@ import { MiniMap } from '../components/MiniMap/MiniMap';
 import { LocationBar } from '../components/LocationBar/LocationBar';
 import { SearchStatusPill } from '../components/SearchStatusPill/SearchStatusPill';
 import { MobileHeader } from '../components/MobileHeader/MobileHeader';
-import { BottomNav } from '../components/BottomNav/BottomNav';
+import { BottomNav, type Tab } from '../components/BottomNav/BottomNav';
+import { BenefitsPanel } from '../components/BenefitsPanel/BenefitsPanel';
+import { MyPanel } from '../components/MyPanel/MyPanel';
+import { parseAppTab, tabHref } from '../lib/tabs';
 import {
   DiscountCard,
   type DiscountGroup,
@@ -20,6 +24,8 @@ import {
   leftPanel,
   mobileHomeView,
   mobileMapView,
+  desktopPanel,
+  mobilePanelView,
   sectionHeader,
   sectionTitle,
   sectionSub,
@@ -45,8 +51,13 @@ function calcDistanceM(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<'home' | 'map'>('home');
+function HomePageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = parseAppTab(searchParams.get('tab'));
+  const setActiveTab = (tab: Tab) => {
+    router.replace(tabHref(tab));
+  };
   const locationName = useCurrentLocation();
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -232,43 +243,59 @@ export default function HomePage() {
     </>
   );
 
+  const pageTitle =
+    activeTab === 'map'
+      ? '지도'
+      : activeTab === 'benefits'
+        ? '혜택'
+        : activeTab === 'my'
+          ? '마이'
+          : '마실';
+
   return (
     <>
-      {/* Mobile header — hidden on desktop via CSS */}
-      <MobileHeader
-        pageTitle={activeTab === 'map' ? '지도' : '마실'}
-        isMapView={activeTab === 'map'}
-      />
+      <MobileHeader pageTitle={pageTitle} isMapView={activeTab === 'map'} />
 
-      {/* Desktop 2-panel — hidden on mobile via CSS */}
-      <main className={layout}>
-        <div className={leftPanel}>
-          <LocationBar location={locationName} />
-          <SearchStatusPill message="아이스 아메리카노 특가 찾는 중" />
+      {(activeTab === 'home' || activeTab === 'map') && (
+        <main className={layout}>
+          <div className={leftPanel}>
+            <LocationBar location={locationName} />
+            <SearchStatusPill message="아이스 아메리카노 특가 찾는 중" />
 
-          <div className={sectionHeader}>
-            <div>
-              <div className={sectionTitle}>오늘의 할인</div>
-              <div className={sectionSub}>내 주변 500m 기준</div>
+            <div className={sectionHeader}>
+              <div>
+                <div className={sectionTitle}>오늘의 할인</div>
+                <div className={sectionSub}>내 주변 500m 기준</div>
+              </div>
+              <button className={filterBtn}>☰ 필터</button>
             </div>
-            <button className={filterBtn}>☰ 필터</button>
+
+            {discountList}
           </div>
 
-          {discountList}
+          <MapPanel
+            selectedCafe={null}
+            onSelectCafe={handleSelectCafe}
+            discountMarker={discountMarker}
+            onClearDiscount={() => setSelectedDiscountId(null)}
+            selectedGroup={selectedGroup}
+            selectedDiscountId={selectedDiscountId}
+            onSelectDiscount={handleSelectDiscount}
+          />
+        </main>
+      )}
+
+      {activeTab === 'benefits' && (
+        <div className={desktopPanel}>
+          <BenefitsPanel />
         </div>
+      )}
+      {activeTab === 'my' && (
+        <div className={desktopPanel}>
+          <MyPanel groups={discountGroups} />
+        </div>
+      )}
 
-        <MapPanel
-          selectedCafe={null}
-          onSelectCafe={handleSelectCafe}
-          discountMarker={discountMarker}
-          onClearDiscount={() => setSelectedDiscountId(null)}
-          selectedGroup={selectedGroup}
-          selectedDiscountId={selectedDiscountId}
-          onSelectDiscount={handleSelectDiscount}
-        />
-      </main>
-
-      {/* Mobile home tab — hidden on desktop via CSS */}
       {activeTab === 'home' && (
         <div className={mobileHomeView}>
           <LocationBar location={locationName} />
@@ -292,7 +319,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Mobile map tab — hidden on desktop via CSS */}
       {activeTab === 'map' && (
         <div className={mobileMapView}>
           <MapPanel
@@ -307,8 +333,26 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Bottom nav — hidden on desktop via CSS */}
+      {activeTab === 'benefits' && (
+        <div className={mobilePanelView}>
+          <BenefitsPanel />
+        </div>
+      )}
+      {activeTab === 'my' && (
+        <div className={mobilePanelView}>
+          <MyPanel groups={discountGroups} />
+        </div>
+      )}
+
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageInner />
+    </Suspense>
   );
 }

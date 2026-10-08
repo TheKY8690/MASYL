@@ -12,6 +12,7 @@ import { CrawlModule } from './crawl/crawl.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env', '.env.local'],
     }),
     DrizzleModule,
     AuthModule,
